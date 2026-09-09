@@ -41,8 +41,26 @@ historical deposit proof alone proves current solvency.
 - [Competitive landscape](docs/competitive-landscape.md)
 - [MVP and delivery gates](docs/mvp.md)
 - [Attestcoin protocol preflight](docs/protocol-preflight.md)
-- [Attestcoin protocol preflight](docs/protocol-preflight.md)
+- [Security invariant evidence](docs/security-invariants.md)
+
+## Public proof dashboard
+
+Serve the repository root and open the dashboard:
+
+```bash
+npm run dashboard
+```
+
+<http://127.0.0.1:8000/dashboard/>
+
+The page uses read-only JSON-RPC calls to compare the live Creditcoin controller
+with the tracked Sepolia and CC3 deployment evidence. It shows stale, waiting,
+unavailable, and error states explicitly. Token supply, coverage, and the CTC
+bond remain marked pending until the issuer core is deployed and recorded.
 
 ## Status
 
-Architecture phase. No Resyvr contract or deployment is claimed yet.
+The Sepolia reserve vault and Creditcoin proof controller are deployed, and one
+real 5 test-USDC deposit proof has updated CC3 reserve accounting. The isolated
+issuer token and CTC bond contracts are implemented and tested but are not yet
+claimed as deployed.
