@@ -3,6 +3,7 @@ dist/
 out/
 cache/
 broadcast/
+artifacts/
 .env
 .DS_Store
 *.log

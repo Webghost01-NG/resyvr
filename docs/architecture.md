@@ -62,7 +62,7 @@ it must:
 1. call Creditcoin's Block Prover precompile;
 2. require a successful source transaction receipt;
 3. require the configured source chain, vault address, reserve token, event
-   signature, issuer ID, beneficiary, and amount;
+   signature, issuer ID, depositor, beneficiary, and amount;
 4. derive a replay key from the verified transaction/query identity;
 5. update verified reserve accounting before minting;
 6. mint exactly the proven amount to the proven beneficiary.
@@ -129,6 +129,8 @@ working issuance rail rather than a trustless two-way stablecoin.
 
 - A proof can be consumed once.
 - Only the configured source vault can create recognized reserve events.
+- A direct vault call must match its calldata; a smart-account-routed call must
+  target the configured executor and bind the outer sender to the event depositor.
 - Failed source transactions cannot change reserve accounting.
 - Minted amount and beneficiary come from the verified event.
 - Confirmed minted supply cannot exceed confirmed net reserve after decimal

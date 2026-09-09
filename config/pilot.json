@@ -1,0 +1,12 @@
+{
+  "issuerId": "0x6e4836a0c4a5d2c9bfab7f761d7f81f77ab0df7d7822d9fca727b6141e3de5e9",
+  "sourceVault": "0x99d9d85EAca66c85526cb8DA2CbF9948FD4B34f1",
+  "sourceExecutor": "0xdb9B1e94B5b69Df7e401DDbedE43491141047dB3",
+  "depositor": "0x6CeD8D6Bad8Dfd2e60BCEA116fE74548f959f1F2",
+  "beneficiary": "0x6CeD8D6Bad8Dfd2e60BCEA116fE74548f959f1F2",
+  "depositId": "0xea82e6083b22c69aa921deffb4ab4f78062962c73d7fa9f6a2d845cf59a78716",
+  "amount": "5000000",
+  "approvalTransactionHash": "0xf46d3b9aa7116edccb653181aa6559692d3815d5cbd089ab365b49059d03eb61",
+  "depositTransactionHash": "0xbc7b11952b799049cab6159f43c80f4c52242e678891a693f337060e0db3545b",
+  "depositBlockNumber": 11667521
+}
