@@ -23,3 +23,8 @@ bracket_spacing = true
 
 [lint]
 lint_on_build = false
+
+[invariant]
+runs = 64
+depth = 32
+fail_on_revert = true

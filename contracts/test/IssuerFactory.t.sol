@@ -170,6 +170,34 @@ contract IssuerFactoryTest is Test {
         factory.createIssuer(parameters);
     }
 
+    function testFuzzMintsExactAmountAcrossSupportedDecimals(
+        uint8 decimalsSeed,
+        uint128 amountSeed,
+        address fuzzBeneficiary,
+        bytes32 fuzzDepositId
+    ) external {
+        uint8 decimals = uint8(uint256(decimalsSeed) % 19);
+        uint256 amount = uint256(amountSeed) + 1;
+        if (fuzzBeneficiary == address(0)) fuzzBeneficiary = address(1);
+        if (fuzzDepositId == bytes32(0)) fuzzDepositId = bytes32(uint256(1));
+
+        IssuerFactory.IssuerParameters memory parameters = _parameters();
+        parameters.decimals = decimals;
+        vm.prank(administrator);
+        (address controllerAddress, address tokenAddress) = factory.createIssuer(parameters);
+        IssuerController controller = IssuerController(controllerAddress);
+        IssuerToken token = IssuerToken(tokenAddress);
+        _fundAndActivate(controller);
+
+        _executeDeposit(controller, _encodedDepositTransaction(fuzzDepositId, fuzzBeneficiary, depositor, amount));
+
+        assertEq(controller.reserveDecimals(), decimals);
+        assertEq(token.decimals(), decimals);
+        assertEq(controller.totalVerifiedReserve(), amount);
+        assertEq(token.totalSupply(), amount);
+        assertEq(token.balanceOf(fuzzBeneficiary), amount);
+    }
+
     function testIssuanceRequiresFundedActiveBond() external {
         (IssuerController controller, IssuerToken token) = _createIssuer();
 
