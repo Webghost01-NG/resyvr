@@ -15,9 +15,14 @@ controller rather than trusting copied display values. A failed or stale RPC
 read remains visible as a status rather than silently falling back to a live
 claim.
 
-The issuer launchpad also reads `config/issuance.json` and resumes from the
-recorded deployment. See [`../docs/wallet-flow.md`](../docs/wallet-flow.md) for
-the complete signature and failure-state sequence.
+The issuer launchpad uses the shared factory address from `config/issuance.json`
+to create a new issuer. Connect a wallet, choose a token name and symbol, then
+deploy a dedicated Sepolia vault, create the Creditcoin token system, fund and
+activate its CTC bond, deposit test USDC, generate a proof, and submit it to mint.
+Source-vault creation bytecode comes from `config/source-vault-deployment.json`.
+The public pilot metrics do not represent a newly created issuer's balances.
+See [`../docs/wallet-flow.md`](../docs/wallet-flow.md) for the six steps,
+transaction confirmations, and failure states.
 
 The interface uses a code-native proof orbit to show the pilot's actual
 Sepolia → Attestcoin → Creditcoin route. Section reveals and pointer depth are

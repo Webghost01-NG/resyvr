@@ -7,7 +7,7 @@
     <meta name="theme-color" content="#080914" />
     <title>Resyvr — Proof-backed issuance on Creditcoin</title>
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./styles.css?v=4" />
   </head>
   <body>
     <div class="page-noise" aria-hidden="true"></div>
@@ -152,27 +152,61 @@
       </section>
 
       <section class="shell launch-section" id="launch" aria-labelledby="launch-title">
-        <div class="section-heading">
+        <div class="section-heading launch-heading">
           <div>
             <p class="kicker">Issuer launchpad</p>
-            <h2 id="launch-title">From wallet to proven mint.</h2>
+            <h2 id="launch-title">Issue your own<br />proof-backed token.</h2>
           </div>
-          <p class="source-note">Every action names its network and effect before MetaMask opens. Nothing is signed automatically.</p>
+          <p class="source-note">Connect once, define the asset, and follow six explicit transactions across Sepolia and Creditcoin.</p>
         </div>
 
-        <div class="wallet-bar">
-          <div>
-            <p class="label">Connected wallet</p>
-            <p class="wallet-account mono" id="wallet-account">Not connected</p>
+        <div class="issuer-console">
+          <div class="wallet-bar">
+            <div class="wallet-identity">
+              <span class="wallet-avatar" id="wallet-avatar" aria-hidden="true">W</span>
+              <div>
+                <p class="label">Issuer administrator</p>
+                <p class="wallet-account mono" id="wallet-account">Connect a wallet to begin</p>
+                <p class="wallet-network" id="wallet-network">MetaMask · network changes happen per step</p>
+              </div>
+            </div>
+            <button class="primary-button" id="connect-wallet" type="button">Connect wallet <span>↗</span></button>
           </div>
-          <button class="primary-button" id="connect-wallet" type="button">Connect MetaMask</button>
-        </div>
 
-        <div class="signature-preview" id="signature-preview" aria-live="polite">
-          <span class="state-icon" aria-hidden="true">i</span>
-          <div>
-            <p class="label">Next wallet request</p>
-            <p id="signature-effect">Connect a wallet to begin. No transaction is requested on connection.</p>
+          <div class="asset-builder">
+            <div class="asset-builder-copy">
+              <p class="label">Your asset</p>
+              <h3>Define the token people will receive.</h3>
+              <p>The issuer ID and reserve vault become immutable when the first transaction confirms.</p>
+            </div>
+            <div class="asset-fields">
+              <label for="token-name">Token name<input id="token-name" maxlength="48" placeholder="e.g. Lagos Property Dollar" autocomplete="off" /></label>
+              <label for="token-symbol">Symbol<input id="token-symbol" maxlength="11" placeholder="e.g. LPD" autocomplete="off" autocapitalize="characters" /></label>
+            </div>
+            <div class="asset-builder-actions">
+              <p class="draft-id"><span>Issuer ID</span><strong class="mono" id="issuer-draft-id">Generated when you deploy</strong></p>
+              <button class="quiet-button" id="load-pilot" type="button">View completed pilot</button>
+              <button class="quiet-button" id="start-new-issuer" type="button" hidden>Start a new issuer</button>
+            </div>
+          </div>
+
+          <div class="signature-preview" id="signature-preview" aria-live="polite">
+            <span class="state-icon" aria-hidden="true">i</span>
+            <div>
+              <p class="label">Next wallet request</p>
+              <p id="signature-effect">Connect a wallet to start. Connecting requests account access only.</p>
+            </div>
+          </div>
+
+          <div class="token-result" id="token-result" hidden aria-live="polite">
+            <span class="token-result-mark" aria-hidden="true">T</span>
+            <div class="token-result-copy">
+              <p class="label">Your deployed token</p>
+              <h3><span id="token-result-name">Token</span> <small id="token-result-symbol"></small></h3>
+              <a class="mono token-address" id="token-address-link" href="#" target="_blank" rel="noreferrer">—</a>
+              <p>Creditcoin CC3 Testnet · 6 decimals. Share this contract address so holders can import the token in MetaMask.</p>
+            </div>
+            <button class="quiet-button copy-token-button" id="copy-token-address" type="button">Copy address</button>
           </div>
         </div>
 
@@ -180,63 +214,70 @@
           <li class="launch-card">
             <span class="launch-number">01</span>
             <div>
-              <p class="network-tag">Creditcoin CC3</p>
-              <h3>Create isolated issuer</h3>
-              <p>Registers the pilot source boundary and deploys one controller, token, and bond vault.</p>
-              <p class="action-state" id="create-state">Waiting for factory deployment evidence.</p>
-              <div class="button-row">
-                <button class="action-button" id="deploy-factory" type="button" disabled>Deploy factory</button>
-                <button class="action-button secondary" id="create-issuer" type="button" disabled>Create issuer</button>
-              </div>
+              <p class="network-tag">Ethereum Sepolia · 1 signature</p>
+              <h3>Deploy reserve vault</h3>
+              <p>Creates an isolated USDC vault bound to your new issuer ID. The vault cannot withdraw or change reserve assets.</p>
+              <p class="action-state" id="source-vault-state">Connect your wallet and define the token.</p>
+              <button class="action-button" id="deploy-source-vault" type="button" disabled>Deploy reserve vault</button>
             </div>
           </li>
           <li class="launch-card">
             <span class="launch-number">02</span>
             <div>
-              <p class="network-tag">Creditcoin CC3 · 2 signatures</p>
-              <h3>Post and activate bond</h3>
-              <p>Deposits the immutable factory minimum in native CTC, then activates proof-backed issuance.</p>
-              <p class="action-state" id="bond-state">Issuer controller required.</p>
-              <div class="button-row">
-                <button class="action-button" id="deposit-bond" type="button" disabled>Deposit CTC</button>
-                <button class="action-button secondary" id="activate-bond" type="button" disabled>Activate</button>
-              </div>
+              <p class="network-tag">Creditcoin CC3 · 1 signature</p>
+              <h3>Create token system</h3>
+              <p>Uses the shared factory to deploy your controller, ERC-20 token, and native CTC bond vault.</p>
+              <p class="action-state" id="create-state">A confirmed Sepolia reserve vault is required.</p>
+              <button class="action-button" id="create-issuer" type="button" disabled>Create token system</button>
             </div>
           </li>
           <li class="launch-card">
             <span class="launch-number">03</span>
             <div>
-              <p class="network-tag">Ethereum Sepolia · 2 signatures</p>
-              <h3>Lock test USDC</h3>
-              <p>Approves only the entered amount, then deposits it for the connected wallet as beneficiary.</p>
-              <label class="amount-label" for="reserve-amount">Reserve amount</label>
-              <div class="amount-input"><input id="reserve-amount" value="1" inputmode="decimal" /><span>USDC</span></div>
-              <p class="action-state" id="deposit-state">Wallet connection required.</p>
+              <p class="network-tag">Creditcoin CC3 · 2 signatures</p>
+              <h3>Post and activate bond</h3>
+              <p>Deposits the required native CTC into your bond vault, then activates proof-backed issuance.</p>
+              <p class="action-state" id="bond-state">Create the token system first.</p>
               <div class="button-row">
-                <button class="action-button" id="approve-reserve" type="button" disabled>Approve USDC</button>
-                <button class="action-button secondary" id="deposit-reserve" type="button" disabled>Deposit reserve</button>
-                <button class="action-button secondary" id="use-pilot-deposit" type="button" disabled>Use recorded 5 USDC</button>
+                <button class="action-button" id="deposit-bond" type="button" disabled>Deposit CTC</button>
+                <button class="action-button secondary" id="activate-bond" type="button" disabled>Activate issuance</button>
               </div>
             </div>
           </li>
           <li class="launch-card">
             <span class="launch-number">04</span>
             <div>
+              <p class="network-tag">Ethereum Sepolia · 2 signatures</p>
+              <h3>Lock reserve USDC</h3>
+              <p>Approves only the entered amount, then locks it for your wallet as the token beneficiary.</p>
+              <label class="amount-label" for="reserve-amount">Reserve amount</label>
+              <div class="amount-input"><input id="reserve-amount" value="1" inputmode="decimal" /><span>USDC</span></div>
+              <p class="action-state" id="deposit-state">Activate the issuer before depositing reserves.</p>
+              <div class="button-row">
+                <button class="action-button" id="approve-reserve" type="button" disabled>Approve USDC</button>
+                <button class="action-button secondary" id="deposit-reserve" type="button" disabled>Deposit reserve</button>
+                <button class="action-button secondary" id="use-pilot-deposit" type="button" hidden>Use recorded 5 USDC</button>
+              </div>
+            </div>
+          </li>
+          <li class="launch-card">
+            <span class="launch-number">05</span>
+            <div>
               <p class="network-tag">Attestcoin · no signature</p>
-              <h3>Wait for proof</h3>
-              <p>Polls the official proof builder until the source block is attested, then validates and encodes the proof.</p>
+              <h3>Generate proof</h3>
+              <p>Waits for source finality, then retrieves and validates the official proof for your Sepolia deposit.</p>
               <p class="action-state" id="proof-generation-state">A successful reserve deposit is required.</p>
               <button class="action-button" id="generate-proof" type="button" disabled>Generate proof</button>
             </div>
           </li>
           <li class="launch-card final-step">
-            <span class="launch-number">05</span>
+            <span class="launch-number">06</span>
             <div>
               <p class="network-tag">Creditcoin CC3 · 1 signature</p>
-              <h3>Submit and mint</h3>
-              <p>Submits the generated proof. The controller mints only if every source field and replay check passes.</p>
+              <h3>Submit proof and mint</h3>
+              <p>Submits the generated proof. Your controller mints the exact proven amount to the reserve beneficiary.</p>
               <p class="action-state" id="mint-state">A generated proof is required.</p>
-              <button class="action-button" id="submit-proof" type="button" disabled>Submit proof</button>
+              <button class="action-button" id="submit-proof" type="button" disabled>Mint proof-backed tokens</button>
             </div>
           </li>
         </ol>
@@ -279,7 +320,7 @@
     </footer>
 
     <script type="module" src="./motion.js?v=1"></script>
-    <script type="module" src="./app.js?v=11"></script>
-    <script type="module" src="./wallet.js?v=13"></script>
+    <script type="module" src="./app.js?v=12"></script>
+    <script type="module" src="./wallet.js?v=15"></script>
   </body>
 </html>

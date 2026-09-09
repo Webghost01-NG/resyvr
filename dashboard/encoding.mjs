@@ -52,6 +52,12 @@ export function encodeFactoryDeployment(bytecode, minimumBondWei) {
   return `0x${creationBytecode}${encodeUint(minimumBondWei)}`;
 }
 
+export function encodeSourceVaultDeployment(bytecode, reserveAsset, issuerId) {
+  const creationBytecode = stripHexPrefix(bytecode);
+  if (creationBytecode.length === 0) throw new Error("Source vault bytecode is unavailable");
+  return `0x${creationBytecode}${encodeAddress(reserveAsset)}${encodeBytes32(issuerId)}`;
+}
+
 export function encodeDeposit(depositId, beneficiary, amount) {
   return `0xd954863c${encodeBytes32(depositId)}${encodeAddress(beneficiary)}${encodeUint(amount)}`;
 }

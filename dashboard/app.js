@@ -83,22 +83,29 @@ async function fetchJson(path) {
 }
 
 async function rpc(rpcUrl, method, params = []) {
-  const controller = new AbortController();
-  const timeout = window.setTimeout(() => controller.abort(), 10_000);
-  try {
-    const response = await fetch(rpcUrl, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
-      signal: controller.signal,
-    });
-    if (!response.ok) throw new Error(`${method} returned HTTP ${response.status}`);
-    const payload = await response.json();
-    if (payload.error) throw new Error(payload.error.message || `${method} failed`);
-    return payload.result;
-  } finally {
-    window.clearTimeout(timeout);
+  let lastError;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 10_000);
+    try {
+      const response = await fetch(rpcUrl, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
+        signal: controller.signal,
+      });
+      if (!response.ok) throw new Error(`${method} returned HTTP ${response.status}`);
+      const payload = await response.json();
+      if (payload.error) throw new Error(payload.error.message || `${method} failed`);
+      return payload.result;
+    } catch (error) {
+      lastError = error;
+      if (attempt === 0) await new Promise((resolve) => window.setTimeout(resolve, 400));
+    } finally {
+      window.clearTimeout(timeout);
+    }
   }
+  throw lastError;
 }
 
 function contractCall(rpcUrl, address, data) {

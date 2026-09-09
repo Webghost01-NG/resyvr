@@ -62,10 +62,34 @@ The page uses read-only JSON-RPC calls to compare the live issuer controller,
 rvUSD supply, and CTC bond with the tracked Sepolia and CC3 deployment evidence.
 It shows stale, waiting, unavailable, and error states explicitly.
 
-The issuer launchpad guides MetaMask through explicit CC3 and Sepolia network
-switches, issuer creation, CTC bond activation, reserve approval and deposit,
-Attestcoin waiting, and proof submission. Each transaction displays its network
-and effect before the wallet opens.
+## Launch your token
+
+Connect MetaMask and enter your token name and symbol in **Issue your own
+proof-backed token**. Connecting requests account access; it does not send a
+transaction. Use a wallet funded with Sepolia ETH for source-chain gas, test
+USDC for the reserve, and testnet CTC for destination gas and the issuer bond.
+
+The launchpad then guides six steps:
+
+1. **Deploy reserve vault — Sepolia.** Create a new `SourceReserveVault` bound
+   to your issuer ID and the configured test USDC asset.
+2. **Create token system — Creditcoin CC3.** Call the shared factory to create
+   your isolated controller, branded ERC-20 token, and CTC bond vault.
+3. **Post and activate bond — Creditcoin CC3.** Deposit the required native
+   CTC, then confirm a separate activation transaction.
+4. **Deposit reserve — Sepolia.** Approve the entered USDC amount, then lock
+   it in your vault with your wallet as the token beneficiary.
+5. **Generate proof.** Wait for Attestcoin coverage and retrieve the deposit
+   proof. This step requires no wallet signature.
+6. **Submit proof and mint — Creditcoin CC3.** Submit the proof to your
+   controller. A successful verification mints the exact proven amount to the
+   deposit beneficiary.
+
+Each transaction displays its network and effect before the wallet opens. A
+new issuer uses its own vault and deposit; the public pilot's proof and rvUSD
+metrics remain recorded evidence for that pilot. See the [wallet-flow guide](docs/wallet-flow.md)
+for confirmation states and recovery guidance. The MVP vault has no withdrawal
+path; use test assets only. Redemption remains deferred.
 
 ## Status
 
