@@ -3,54 +3,151 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Public reserve, proof, and issuer status for the Resyvr Creditcoin pilot." />
-    <title>Resyvr | Proof keeps the reserve</title>
+    <meta name="description" content="Launch proof-backed assets on Creditcoin with verifiable reserves and native CTC bonds." />
+    <meta name="theme-color" content="#080914" />
+    <title>Resyvr — Proof-backed issuance on Creditcoin</title>
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <div class="ambient ambient-one" aria-hidden="true"></div>
-    <div class="ambient ambient-two" aria-hidden="true"></div>
+    <div class="page-noise" aria-hidden="true"></div>
+    <div class="aurora aurora-violet" aria-hidden="true"></div>
+    <div class="aurora aurora-cyan" aria-hidden="true"></div>
 
     <header class="site-header">
-      <a class="brand" href="#top" aria-label="Resyvr dashboard home">
-        <span class="brand-mark" aria-hidden="true">R</span>
+      <a class="brand" href="#top" aria-label="Resyvr home">
+        <span class="brand-mark" aria-hidden="true"><i>R</i></span>
         <span>RESYVR</span>
       </a>
-      <nav aria-label="Dashboard navigation">
-        <a href="#coverage">Coverage</a>
-        <a href="#launch">Launch</a>
-        <a href="#proof">Proof trail</a>
-        <a href="#configuration">Configuration</a>
+      <nav aria-label="Primary navigation">
+        <a href="#proof">How it works</a>
+        <a href="#coverage">Live proof</a>
+        <a href="#launch">Issue an asset</a>
       </nav>
-      <a class="header-link" id="header-contract-link" href="#configuration">View contract ↗</a>
+      <a class="network-pill" id="header-contract-link" href="#configuration"><span aria-hidden="true"></span>CC3 live</a>
     </header>
 
     <main id="top">
       <section class="hero shell" aria-labelledby="page-title">
-        <div class="eyebrow-row">
-          <p class="eyebrow"><span class="pulse" aria-hidden="true"></span> Creditcoin CC3 pilot</p>
-          <p class="updated" id="updated-at">Checking live state…</p>
-        </div>
-        <div class="hero-grid">
-          <div>
-            <h1 id="page-title">Proof keeps<br />the reserve.</h1>
-            <p class="hero-copy">
-              Follow one reserve deposit from Sepolia into a verified Creditcoin accounting update.
-              Every number below names its source and every transaction opens in an explorer.
-            </p>
+        <div class="hero-copy-block reveal">
+          <p class="eyebrow"><span>RWA issuance infrastructure</span><span>Built on Creditcoin</span></p>
+          <h1 id="page-title">Assets that<br />prove their<br /><em>backing.</em></h1>
+          <p class="hero-copy">
+            Create a token, lock its reserve, and let cryptographic proof decide what can be minted.
+            Every asset gets an isolated controller, a CTC bond, and a public trail.
+          </p>
+          <div class="hero-actions">
+            <a class="primary-cta" href="#launch">Launch an issuer <span>↗</span></a>
+            <a class="secondary-cta" href="#proof">See the live proof <span>↓</span></a>
           </div>
+          <div class="hero-footnote">
+            <span>01 / Testnet pilot</span>
+            <span id="updated-at">Checking live state…</span>
+          </div>
+        </div>
+
+        <div class="proof-visual reveal" aria-label="Reserve proof moving from Sepolia through Attestcoin to Creditcoin">
+          <div class="visual-grid" aria-hidden="true"></div>
+          <div class="orbit orbit-outer" aria-hidden="true"><span class="orbit-packet packet-one"><i></i></span><span class="orbit-packet packet-two"><i></i></span></div>
+          <div class="orbit orbit-inner" aria-hidden="true"><span class="orbit-packet packet-three"><i></i></span></div>
+          <div class="token-core" aria-hidden="true">
+            <span class="token-halo"></span>
+            <span class="token-symbol">rv</span><strong>USD</strong><small>PROOF-BOUND</small>
+          </div>
+          <div class="chain-node source-node"><span class="node-icon ethereum-icon" aria-hidden="true">◆</span><span><small>Reserve</small><strong>Sepolia</strong></span></div>
+          <div class="chain-node proof-node"><span class="node-icon attest-icon" aria-hidden="true">✦</span><span><small>Verification</small><strong>Attestcoin</strong></span></div>
+          <div class="chain-node destination-node"><span class="node-icon creditcoin-icon" aria-hidden="true">C</span><span><small>Issuance</small><strong>Creditcoin</strong></span></div>
           <aside class="system-state" aria-live="polite">
-            <div class="state-heading">
-              <span class="state-icon" id="state-icon" aria-hidden="true">↻</span>
-              <div>
-                <p class="label">System state</p>
-                <p class="state-title" id="system-state">Loading evidence</p>
-              </div>
-            </div>
-            <p id="system-message">Reading the public CC3 contract and latest network block.</p>
-            <button class="text-button" id="refresh-button" type="button">Refresh live reads</button>
+            <span class="state-icon" id="state-icon" aria-hidden="true">↻</span>
+            <div class="state-copy"><p class="label">Network state</p><p class="state-title" id="system-state">Loading evidence</p><p id="system-message">Reading the public CC3 controller and latest block.</p></div>
+            <button class="refresh-button" id="refresh-button" type="button" aria-label="Refresh live blockchain reads">↻</button>
           </aside>
+        </div>
+      </section>
+
+      <section class="shell metric-section" id="coverage" aria-labelledby="coverage-title">
+        <div class="section-heading">
+          <div>
+            <p class="kicker">Reserve coverage</p>
+            <h2 id="coverage-title">What the chain can prove now</h2>
+          </div>
+          <p class="source-note">Live values use read-only JSON-RPC against the deployed pilot issuer contracts.</p>
+        </div>
+
+        <div class="metrics">
+          <article class="metric featured">
+            <p class="label">Confirmed reserve</p>
+            <p class="metric-value" id="reserve-value">—</p>
+            <p class="metric-detail" id="reserve-detail">Reading ProofReserveController…</p>
+          </article>
+          <article class="metric">
+            <p class="label">Issued supply</p>
+            <p class="metric-value" id="supply-value">—</p>
+            <p class="metric-detail" id="supply-detail">Checking issuer token deployment…</p>
+          </article>
+          <article class="metric">
+            <p class="label">On-chain coverage</p>
+            <p class="metric-value" id="coverage-value">—</p>
+            <p class="metric-detail" id="coverage-detail">Requires a live issuer token.</p>
+          </article>
+          <article class="metric">
+            <p class="label">Native CTC bond</p>
+            <p class="metric-value" id="bond-value">—</p>
+            <p class="metric-detail" id="bond-detail">Checking bond vault deployment…</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="shell proof-section" id="proof" aria-labelledby="proof-title">
+        <div class="section-heading">
+          <div>
+            <p class="kicker">Proof trail</p>
+            <h2 id="proof-title">One deposit. Three inspectable steps.</h2>
+          </div>
+          <div class="legend" aria-label="Evidence status legend">
+            <span><i class="dot verified"></i>Verified</span>
+            <span><i class="dot waiting"></i>Waiting</span>
+            <span><i class="dot unavailable"></i>Unavailable</span>
+          </div>
+        </div>
+
+        <div class="proof-flow">
+          <article class="proof-card">
+            <div class="step-line"><span>01</span><span class="status verified-status">Source confirmed</span></div>
+            <h3>Reserve locked</h3>
+            <p>Circle test USDC entered the immutable Sepolia reserve vault with a unique deposit ID.</p>
+            <dl>
+              <div><dt>Source block</dt><dd id="source-block">—</dd></div>
+              <div><dt>Deposit ID</dt><dd class="mono truncate" id="deposit-id">—</dd></div>
+            </dl>
+            <a class="evidence-link" id="source-transaction-link" href="#">Inspect Sepolia transaction ↗</a>
+          </article>
+
+          <span class="connector" aria-hidden="true">→</span>
+
+          <article class="proof-card">
+            <div class="step-line"><span>02</span><span class="status verified-status" id="attestation-status">Proof accepted</span></div>
+            <h3>Attestcoin verified</h3>
+            <p>The submitted proof binds the source transaction, receipt, event fields, and finalized continuity roots.</p>
+            <dl>
+              <div><dt>Merkle siblings</dt><dd id="merkle-siblings">—</dd></div>
+              <div><dt>Continuity roots</dt><dd id="continuity-roots">—</dd></div>
+            </dl>
+            <span class="evidence-link muted" id="attestation-detail">Waiting for evidence file…</span>
+          </article>
+
+          <span class="connector" aria-hidden="true">→</span>
+
+          <article class="proof-card">
+            <div class="step-line"><span>03</span><span class="status verified-status">State updated</span></div>
+            <h3>Reserve recorded</h3>
+            <p>Creditcoin consumed both replay keys and increased confirmed reserve by the proven event amount.</p>
+            <dl>
+              <div><dt>CC3 block</dt><dd id="proof-block">—</dd></div>
+              <div><dt>Replay result</dt><dd id="replay-result">—</dd></div>
+            </dl>
+            <a class="evidence-link" id="proof-transaction-link" href="#">Inspect Creditcoin transaction ↗</a>
+          </article>
         </div>
       </section>
 
@@ -145,92 +242,6 @@
         </ol>
       </section>
 
-      <section class="shell metric-section" id="coverage" aria-labelledby="coverage-title">
-        <div class="section-heading">
-          <div>
-            <p class="kicker">Reserve coverage</p>
-            <h2 id="coverage-title">What the chain can prove now</h2>
-          </div>
-          <p class="source-note">Live values use read-only JSON-RPC against the deployed pilot issuer contracts.</p>
-        </div>
-
-        <div class="metrics">
-          <article class="metric featured">
-            <p class="label">Confirmed reserve</p>
-            <p class="metric-value" id="reserve-value">—</p>
-            <p class="metric-detail" id="reserve-detail">Reading ProofReserveController…</p>
-          </article>
-          <article class="metric">
-            <p class="label">Issued supply</p>
-            <p class="metric-value" id="supply-value">—</p>
-            <p class="metric-detail" id="supply-detail">Checking issuer token deployment…</p>
-          </article>
-          <article class="metric">
-            <p class="label">On-chain coverage</p>
-            <p class="metric-value" id="coverage-value">—</p>
-            <p class="metric-detail" id="coverage-detail">Requires a live issuer token.</p>
-          </article>
-          <article class="metric">
-            <p class="label">Native CTC bond</p>
-            <p class="metric-value" id="bond-value">—</p>
-            <p class="metric-detail" id="bond-detail">Checking bond vault deployment…</p>
-          </article>
-        </div>
-      </section>
-
-      <section class="shell proof-section" id="proof" aria-labelledby="proof-title">
-        <div class="section-heading">
-          <div>
-            <p class="kicker">Proof trail</p>
-            <h2 id="proof-title">One deposit. Three inspectable steps.</h2>
-          </div>
-          <div class="legend" aria-label="Evidence status legend">
-            <span><i class="dot verified"></i>Verified</span>
-            <span><i class="dot waiting"></i>Waiting</span>
-            <span><i class="dot unavailable"></i>Unavailable</span>
-          </div>
-        </div>
-
-        <div class="proof-flow">
-          <article class="proof-card">
-            <div class="step-line"><span>01</span><span class="status verified-status">Source confirmed</span></div>
-            <h3>Reserve locked</h3>
-            <p>Circle test USDC entered the immutable Sepolia reserve vault with a unique deposit ID.</p>
-            <dl>
-              <div><dt>Source block</dt><dd id="source-block">—</dd></div>
-              <div><dt>Deposit ID</dt><dd class="mono truncate" id="deposit-id">—</dd></div>
-            </dl>
-            <a class="evidence-link" id="source-transaction-link" href="#">Inspect Sepolia transaction ↗</a>
-          </article>
-
-          <span class="connector" aria-hidden="true">→</span>
-
-          <article class="proof-card">
-            <div class="step-line"><span>02</span><span class="status verified-status" id="attestation-status">Proof accepted</span></div>
-            <h3>Attestcoin verified</h3>
-            <p>The submitted proof binds the source transaction, receipt, event fields, and finalized continuity roots.</p>
-            <dl>
-              <div><dt>Merkle siblings</dt><dd id="merkle-siblings">—</dd></div>
-              <div><dt>Continuity roots</dt><dd id="continuity-roots">—</dd></div>
-            </dl>
-            <span class="evidence-link muted" id="attestation-detail">Waiting for evidence file…</span>
-          </article>
-
-          <span class="connector" aria-hidden="true">→</span>
-
-          <article class="proof-card">
-            <div class="step-line"><span>03</span><span class="status verified-status">State updated</span></div>
-            <h3>Reserve recorded</h3>
-            <p>Creditcoin consumed both replay keys and increased confirmed reserve by the proven event amount.</p>
-            <dl>
-              <div><dt>CC3 block</dt><dd id="proof-block">—</dd></div>
-              <div><dt>Replay result</dt><dd id="replay-result">—</dd></div>
-            </dl>
-            <a class="evidence-link" id="proof-transaction-link" href="#">Inspect Creditcoin transaction ↗</a>
-          </article>
-        </div>
-      </section>
-
       <section class="shell configuration-section" id="configuration" aria-labelledby="configuration-title">
         <div class="section-heading">
           <div>
@@ -267,7 +278,8 @@
       <p>Testnet evidence only · No claim of production solvency or dollar insurance</p>
     </footer>
 
-    <script type="module" src="./app.js?v=10"></script>
-    <script type="module" src="./wallet.js?v=12"></script>
+    <script type="module" src="./motion.js?v=1"></script>
+    <script type="module" src="./app.js?v=11"></script>
+    <script type="module" src="./wallet.js?v=13"></script>
   </body>
 </html>

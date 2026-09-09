@@ -16,7 +16,7 @@
     "deployment:prepare": "forge build --root contracts && node scripts/export-factory-bytecode.mjs",
     "deployment:verify-sources": "bash scripts/verify-issuer-sources.sh",
     "dashboard": "python3 -m http.server 8000",
-    "dashboard:check": "node --check dashboard/app.js && node --check dashboard/wallet.js && node scripts/check-dashboard.mjs && node scripts/test-dashboard-encoding.mjs",
+    "dashboard:check": "node --check dashboard/motion.js && node --check dashboard/app.js && node --check dashboard/wallet.js && node scripts/check-dashboard.mjs && node scripts/test-dashboard-encoding.mjs",
     "evidence:verify": "node --dns-result-order=ipv4first --import tsx scripts/verify-evidence.ts",
     "preflight": "node --dns-result-order=ipv4first --import tsx scripts/preflight.ts",
     "proof:deposit": "node --dns-result-order=ipv4first --import tsx scripts/generate-deposit-proof.ts",

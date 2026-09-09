@@ -263,7 +263,8 @@ async function loadLiveState(networks, deployment) {
 async function refresh() {
   const button = byId("refresh-button");
   button.disabled = true;
-  button.textContent = "Refreshing…";
+  button.textContent = "↻";
+  button.setAttribute("aria-label", "Refreshing live blockchain reads");
   document.body.dataset.state = "waiting";
 
   try {
@@ -284,7 +285,8 @@ async function refresh() {
     setText("updated-at", "Live read unavailable");
   } finally {
     button.disabled = false;
-    button.textContent = "Refresh live reads";
+    button.textContent = "↻";
+    button.setAttribute("aria-label", "Refresh live blockchain reads");
   }
 }
 
