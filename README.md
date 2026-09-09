@@ -44,6 +44,9 @@ historical deposit proof alone proves current solvency.
 - [Security invariant evidence](docs/security-invariants.md)
 - [Deployment and failure evidence](docs/deployment-evidence.md)
 - [Browser wallet flow](docs/wallet-flow.md)
+- [Judge-ready RWA submission](docs/submission.md)
+- [Two-minute demo script](docs/demo-script.md)
+- [Submission checklist](docs/submission-checklist.md)
 
 ## Public proof dashboard
 
