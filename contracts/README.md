@@ -22,3 +22,8 @@ of the demo after its address and transaction hash are recorded from Sepolia.
 
 The pilot Sepolia deployment and its verified constructor reads are recorded
 in [`../docs/deployments/sepolia.json`](../docs/deployments/sepolia.json).
+
+`ProofReserveController` is the Creditcoin half of the Phase 1 gate. It binds a
+proof to the configured source chain, vault, optional smart-account executor,
+issuer, depositor, beneficiary, amount, deposit ID, and successful receipt. It
+records verified reserve state and rejects both query and deposit-ID replays.
