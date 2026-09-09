@@ -21,6 +21,8 @@ deploy a dedicated Sepolia vault, create the Creditcoin token system, fund and
 activate its CTC bond, deposit test USDC, generate a proof, and submit it to mint.
 Source-vault creation bytecode comes from `config/source-vault-deployment.json`.
 The public pilot metrics do not represent a newly created issuer's balances.
+The launchpad discovers factory issuers by the connected administrator topic;
+the portfolio stays hidden until at least two matching on-chain issuers exist.
 See [`../docs/wallet-flow.md`](../docs/wallet-flow.md) for the six steps,
 transaction confirmations, and failure states.
 

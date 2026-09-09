@@ -7,7 +7,7 @@
     <meta name="theme-color" content="#080914" />
     <title>Resyvr — Proof-backed issuance on Creditcoin</title>
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="./styles.css?v=4" />
+    <link rel="stylesheet" href="./styles.css?v=5" />
   </head>
   <body>
     <div class="page-noise" aria-hidden="true"></div>
@@ -281,6 +281,17 @@
             </div>
           </li>
         </ol>
+
+        <section class="issuer-portfolio" id="issuer-portfolio" hidden aria-labelledby="issuer-portfolio-title">
+          <div class="portfolio-heading">
+            <div>
+              <p class="kicker">Your issued assets</p>
+              <h3 id="issuer-portfolio-title">One wallet. Every token.</h3>
+            </div>
+            <p id="issuer-portfolio-count">0 assets found</p>
+          </div>
+          <div class="issuer-asset-list" id="issuer-asset-list"></div>
+        </section>
       </section>
 
       <section class="shell configuration-section" id="configuration" aria-labelledby="configuration-title">
@@ -321,6 +332,6 @@
 
     <script type="module" src="./motion.js?v=1"></script>
     <script type="module" src="./app.js?v=12"></script>
-    <script type="module" src="./wallet.js?v=15"></script>
+    <script type="module" src="./wallet.js?v=16"></script>
   </body>
 </html>

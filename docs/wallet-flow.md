@@ -74,10 +74,20 @@ Hashes link to the corresponding Sepolia or Creditcoin explorer. A rejected
 wallet request, reverted receipt, timeout, proof mismatch, or RPC failure is
 shown explicitly and is never a successful completion.
 
+Before opening MetaMask, the launchpad estimates gas through the configured
+public RPC, adds execution headroom, and caps the result below the network's
+safe transaction limit. This prevents wallet fallbacks such as a 21-million-gas
+Sepolia transaction from exceeding the RPC limit.
+
 If a transaction has a hash but confirmation times out, inspect that hash before
 submitting another transaction. A timeout can leave the on-chain result unknown.
 Keep using the issuer's administrator wallet for bond actions and confirm the
 account and network shown in the next request.
+
+After one wallet has created at least two issuers through the factory, **Your
+issued assets** appears below the launch steps. It is rebuilt from indexed
+`IssuerCreated` logs and live token metadata; wallets with zero or one issuer do
+not see an empty portfolio section.
 
 The pilot's recorded 5-USDC deposit belongs to its fixed issuer and source
 vault. It cannot back a newly created token system, and its consumed proof
