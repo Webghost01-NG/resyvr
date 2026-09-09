@@ -19,3 +19,6 @@ npm run contracts:check
 The reproducible deployment script is
 `script/DeploySourceReserveVault.s.sol`. A deployment is only considered part
 of the demo after its address and transaction hash are recorded from Sepolia.
+
+The pilot Sepolia deployment and its verified constructor reads are recorded
+in [`../docs/deployments/sepolia.json`](../docs/deployments/sepolia.json).
