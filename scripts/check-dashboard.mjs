@@ -38,6 +38,10 @@ if (!wallet.includes("refreshReserveFunds")) throw new Error("Reserve flow does 
 if (wallet.includes("explorerUrl}/token/")) throw new Error("Token links use the explorer route that fails before indexing");
 if (!wallet.includes('CustomEvent("resyvr:issuer-selected"')) throw new Error("Wallet flow does not publish the selected issuer");
 if (!app.includes('addEventListener("resyvr:issuer-selected"')) throw new Error("Dashboard metrics do not follow the selected issuer");
+for (const id of ["attestation-progress", "attested-height", "required-height", "attestation-gap", "attestation-elapsed"]) {
+  if (!definedIds.has(id)) throw new Error(`Attestcoin progress is missing ${id}`);
+}
+if (!wallet.includes("updateAttestationProgress")) throw new Error("Proof generation does not report Attestcoin progress");
 if (!/^0x[0-9a-f]{40}$/i.test(networks.source.transactionExecutor || "")) {
   throw new Error("Source transaction executor is not a valid address");
 }
