@@ -87,7 +87,10 @@
               <h3>Create isolated issuer</h3>
               <p>Registers the pilot source boundary and deploys one controller, token, and bond vault.</p>
               <p class="action-state" id="create-state">Waiting for factory deployment evidence.</p>
-              <button class="action-button" id="create-issuer" type="button" disabled>Create issuer</button>
+              <div class="button-row">
+                <button class="action-button" id="deploy-factory" type="button" disabled>Deploy factory</button>
+                <button class="action-button secondary" id="create-issuer" type="button" disabled>Create issuer</button>
+              </div>
             </div>
           </li>
           <li class="launch-card">

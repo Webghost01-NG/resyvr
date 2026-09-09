@@ -18,6 +18,7 @@ const STORAGE_KEY = "resyvr-issuer-flow-v1";
 const flow = {
   account: null,
   factory: null,
+  factoryDeploymentTransaction: null,
   controller: null,
   token: null,
   bondVault: null,
@@ -38,6 +39,7 @@ const flow = {
 let networks;
 let pilot;
 let issuance;
+let factoryDeployment;
 
 function byId(id) {
   const element = document.getElementById(id);
@@ -191,7 +193,7 @@ async function sendWalletTransaction(chainKey, transaction, effect) {
 }
 
 async function resolveIssuerAddresses() {
-  flow.factory = issuance.factory;
+  flow.factory = issuance.factory || flow.factory;
   flow.controller = issuance.issuerController || flow.controller;
   flow.token = issuance.token || flow.token;
   flow.bondVault = issuance.bondVault || flow.bondVault;
@@ -232,6 +234,7 @@ function render() {
   byId("wallet-account").textContent = connected ? shortHex(flow.account, 12, 8) : "Not connected";
   byId("connect-wallet").textContent = connected ? "Wallet connected" : "Connect MetaMask";
 
+  byId("deploy-factory").disabled = !connected || Boolean(flow.factory);
   byId("create-issuer").disabled = !connected || !flow.factory || Boolean(flow.controller);
   byId("deposit-bond").disabled = !connected || !flow.bondVault || flow.bondActive;
   byId("activate-bond").disabled = !connected || !flow.bondVault || flow.bondActive;
@@ -246,6 +249,8 @@ function render() {
     }
   } else if (flow.factory && !hasFinalActionState("create-state")) {
     setActionState("create-state", `Factory ready: ${shortHex(flow.factory)}. Wallet signature required.`, "waiting");
+  } else if (connected && !hasFinalActionState("create-state")) {
+    setActionState("create-state", "Deploy the audited factory bytecode on Creditcoin CC3.", "waiting");
   }
   if (flow.bondVault && !hasFinalActionState("bond-state")) {
     const message = flow.bondActive
@@ -290,6 +295,34 @@ async function connectWallet() {
     render();
   } catch (error) {
     byId("signature-effect").textContent = friendlyError(error);
+  }
+}
+
+function encodeFactoryDeployment(bytecode, minimumBondWei) {
+  if (!/^0x[0-9a-f]+$/i.test(bytecode)) throw new Error("Factory bytecode is unavailable");
+  const minimumBond = BigInt(minimumBondWei).toString(16).padStart(64, "0");
+  return `${bytecode}${minimumBond}`;
+}
+
+async function deployFactory() {
+  const button = byId("deploy-factory");
+  button.disabled = true;
+  try {
+    setActionState("create-state", "Waiting for the CC3 factory-deployment signature…");
+    const { transactionHash, receipt } = await sendWalletTransaction(
+      "destination",
+      { data: encodeFactoryDeployment(factoryDeployment.creationBytecode, issuance.minimumBondWei) },
+      `Deploy the Resyvr issuer factory with an immutable ${formatNative(issuance.minimumBondWei)} CTC minimum bond.`,
+    );
+    if (!receipt.contractAddress) throw new Error("Successful deployment receipt did not contain a contract address");
+    flow.factory = receipt.contractAddress;
+    flow.factoryDeploymentTransaction = transactionHash;
+    saveFlow();
+    setActionState("create-state", `Factory deployed: ${shortHex(flow.factory)}. Create the issuer next.`, "success", transactionHash, networks.destination.explorerUrl);
+  } catch (error) {
+    setActionState("create-state", friendlyError(error), "error");
+  } finally {
+    render();
   }
 }
 
@@ -509,6 +542,7 @@ function formatNative(value) {
 
 function bindActions() {
   byId("connect-wallet").addEventListener("click", connectWallet);
+  byId("deploy-factory").addEventListener("click", deployFactory);
   byId("create-issuer").addEventListener("click", createIssuer);
   byId("deposit-bond").addEventListener("click", depositBond);
   byId("activate-bond").addEventListener("click", activateBond);
@@ -520,10 +554,11 @@ function bindActions() {
 
 async function initialize() {
   loadSavedFlow();
-  [networks, pilot, issuance] = await Promise.all([
+  [networks, pilot, issuance, factoryDeployment] = await Promise.all([
     fetchJson("../config/networks.json"),
     fetchJson("../config/pilot.json"),
     fetchJson("../config/issuance.json"),
+    fetchJson("../config/factory-deployment.json"),
   ]);
   await resolveIssuerAddresses();
   bindActions();

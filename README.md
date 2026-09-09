@@ -42,6 +42,7 @@ historical deposit proof alone proves current solvency.
 - [MVP and delivery gates](docs/mvp.md)
 - [Attestcoin protocol preflight](docs/protocol-preflight.md)
 - [Security invariant evidence](docs/security-invariants.md)
+- [Deployment and failure evidence](docs/deployment-evidence.md)
 - [Browser wallet flow](docs/wallet-flow.md)
 
 ## Public proof dashboard

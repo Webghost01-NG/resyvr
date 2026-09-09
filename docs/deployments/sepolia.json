@@ -22,12 +22,19 @@
     "viaIr": true,
     "evmVersion": "shanghai"
   },
+  "sourceVerification": {
+    "status": "verified",
+    "verifiedAt": "2026-09-09",
+    "explorer": "Blockscout",
+    "compiler": "v0.8.30+commit.73712a01",
+    "optimizer": true
+  },
   "verifiedReads": {
     "runtimeCodeBytes": 1447,
     "reserveAsset": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
     "issuerId": "0x6e4836a0c4a5d2c9bfab7f761d7f81f77ab0df7d7822d9fca727b6141e3de5e9",
-    "totalDeposited": "0",
-    "reserveBalance": "0"
+    "totalDeposited": "5000000",
+    "reserveBalance": "5000000"
   },
   "explorer": {
     "contract": "https://eth-sepolia.blockscout.com/address/0x99d9d85EAca66c85526cb8DA2CbF9948FD4B34f1",
