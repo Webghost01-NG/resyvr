@@ -19,6 +19,7 @@
       </a>
       <nav aria-label="Dashboard navigation">
         <a href="#coverage">Coverage</a>
+        <a href="#launch">Launch</a>
         <a href="#proof">Proof trail</a>
         <a href="#configuration">Configuration</a>
       </nav>
@@ -51,6 +52,93 @@
             <button class="text-button" id="refresh-button" type="button">Refresh live reads</button>
           </aside>
         </div>
+      </section>
+
+      <section class="shell launch-section" id="launch" aria-labelledby="launch-title">
+        <div class="section-heading">
+          <div>
+            <p class="kicker">Issuer launchpad</p>
+            <h2 id="launch-title">From wallet to proven mint.</h2>
+          </div>
+          <p class="source-note">Every action names its network and effect before MetaMask opens. Nothing is signed automatically.</p>
+        </div>
+
+        <div class="wallet-bar">
+          <div>
+            <p class="label">Connected wallet</p>
+            <p class="wallet-account mono" id="wallet-account">Not connected</p>
+          </div>
+          <button class="primary-button" id="connect-wallet" type="button">Connect MetaMask</button>
+        </div>
+
+        <div class="signature-preview" id="signature-preview" aria-live="polite">
+          <span class="state-icon" aria-hidden="true">i</span>
+          <div>
+            <p class="label">Next wallet request</p>
+            <p id="signature-effect">Connect a wallet to begin. No transaction is requested on connection.</p>
+          </div>
+        </div>
+
+        <ol class="launch-grid">
+          <li class="launch-card">
+            <span class="launch-number">01</span>
+            <div>
+              <p class="network-tag">Creditcoin CC3</p>
+              <h3>Create isolated issuer</h3>
+              <p>Registers the pilot source boundary and deploys one controller, token, and bond vault.</p>
+              <p class="action-state" id="create-state">Waiting for factory deployment evidence.</p>
+              <button class="action-button" id="create-issuer" type="button" disabled>Create issuer</button>
+            </div>
+          </li>
+          <li class="launch-card">
+            <span class="launch-number">02</span>
+            <div>
+              <p class="network-tag">Creditcoin CC3 · 2 signatures</p>
+              <h3>Post and activate bond</h3>
+              <p>Deposits the immutable factory minimum in native CTC, then activates proof-backed issuance.</p>
+              <p class="action-state" id="bond-state">Issuer controller required.</p>
+              <div class="button-row">
+                <button class="action-button" id="deposit-bond" type="button" disabled>Deposit CTC</button>
+                <button class="action-button secondary" id="activate-bond" type="button" disabled>Activate</button>
+              </div>
+            </div>
+          </li>
+          <li class="launch-card">
+            <span class="launch-number">03</span>
+            <div>
+              <p class="network-tag">Ethereum Sepolia · 2 signatures</p>
+              <h3>Lock test USDC</h3>
+              <p>Approves only the entered amount, then deposits it for the connected wallet as beneficiary.</p>
+              <label class="amount-label" for="reserve-amount">Reserve amount</label>
+              <div class="amount-input"><input id="reserve-amount" value="1" inputmode="decimal" /><span>USDC</span></div>
+              <p class="action-state" id="deposit-state">Wallet connection required.</p>
+              <div class="button-row">
+                <button class="action-button" id="approve-reserve" type="button" disabled>Approve USDC</button>
+                <button class="action-button secondary" id="deposit-reserve" type="button" disabled>Deposit reserve</button>
+              </div>
+            </div>
+          </li>
+          <li class="launch-card">
+            <span class="launch-number">04</span>
+            <div>
+              <p class="network-tag">Attestcoin · no signature</p>
+              <h3>Wait for proof</h3>
+              <p>Polls the official proof builder until the source block is attested, then validates and encodes the proof.</p>
+              <p class="action-state" id="proof-generation-state">A successful reserve deposit is required.</p>
+              <button class="action-button" id="generate-proof" type="button" disabled>Generate proof</button>
+            </div>
+          </li>
+          <li class="launch-card final-step">
+            <span class="launch-number">05</span>
+            <div>
+              <p class="network-tag">Creditcoin CC3 · 1 signature</p>
+              <h3>Submit and mint</h3>
+              <p>Submits the generated proof. The controller mints only if every source field and replay check passes.</p>
+              <p class="action-state" id="mint-state">A generated proof is required.</p>
+              <button class="action-button" id="submit-proof" type="button" disabled>Submit proof</button>
+            </div>
+          </li>
+        </ol>
       </section>
 
       <section class="shell metric-section" id="coverage" aria-labelledby="coverage-title">
@@ -176,5 +264,6 @@
     </footer>
 
     <script type="module" src="./app.js"></script>
+    <script type="module" src="./wallet.js"></script>
   </body>
 </html>

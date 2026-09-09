@@ -42,6 +42,7 @@ historical deposit proof alone proves current solvency.
 - [MVP and delivery gates](docs/mvp.md)
 - [Attestcoin protocol preflight](docs/protocol-preflight.md)
 - [Security invariant evidence](docs/security-invariants.md)
+- [Browser wallet flow](docs/wallet-flow.md)
 
 ## Public proof dashboard
 
@@ -57,6 +58,11 @@ The page uses read-only JSON-RPC calls to compare the live Creditcoin controller
 with the tracked Sepolia and CC3 deployment evidence. It shows stale, waiting,
 unavailable, and error states explicitly. Token supply, coverage, and the CTC
 bond remain marked pending until the issuer core is deployed and recorded.
+
+The issuer launchpad guides MetaMask through explicit CC3 and Sepolia network
+switches, issuer creation, CTC bond activation, reserve approval and deposit,
+Attestcoin waiting, and proof submission. Each transaction displays its network
+and effect before the wallet opens.
 
 ## Status
 

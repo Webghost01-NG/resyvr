@@ -13,3 +13,8 @@ discovers and reads its token supply and native CTC bond vault. Until then those
 fields are labeled pending and coverage is unavailable. A failed or stale RPC
 read remains visible as a status rather than silently falling back to a live
 claim.
+
+The issuer launchpad reads `config/issuance.json`. Until a factory deployment is
+recorded there, transaction buttons remain disabled while the public evidence
+dashboard continues to work. See [`../docs/wallet-flow.md`](../docs/wallet-flow.md)
+for the complete signature and failure-state sequence.

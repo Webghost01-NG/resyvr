@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "factory": null,
+  "issuerController": null,
+  "token": null,
+  "bondVault": null,
+  "minimumBondWei": "1000000000000000000",
+  "tokenName": "Resyvr USD Pilot",
+  "tokenSymbol": "rvUSD"
+}
