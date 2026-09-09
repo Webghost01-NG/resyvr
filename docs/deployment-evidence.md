@@ -35,6 +35,8 @@ After those transactions confirm, `npm run deployment:capture` discovers them
 from the public Creditcoin explorer using the issuer wallet and bytecode. It
 validates the factory bond minimum, `IssuerCreated` event, administrator,
 contract bytecode, and proof event before writing `config/issuance.json`.
+`npm run deployment:verify-sources` then submits the exact constructor arguments
+for all four issuer contracts to Creditcoin Blockscout.
 `npm run evidence:verify` then additionally requires exact equality between
 verified reserve, token supply, and beneficiary balance, plus a funded active
 CTC bond.
