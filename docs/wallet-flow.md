@@ -12,7 +12,9 @@ requiring terminal access or custody of a private key.
    withdrawals while proof-backed issuance remains active.
 3. **Lock reserve on Sepolia.** Approval is limited to the entered test-USDC
    amount. A second transaction locks that amount under a random deposit ID for
-   the connected account as beneficiary.
+   the connected account as beneficiary. For the fixed pilot, the launchpad can
+   instead select the already-recorded 5 test-USDC deposit; it still revalidates
+   that receipt and event before generating proof calldata.
 4. **Wait for Attestcoin.** No wallet signature is requested. The page verifies
    the successful Sepolia receipt, transaction target, sender, vault event,
    issuer ID, deposit ID, beneficiary, depositor, and amount. It then displays

@@ -240,6 +240,7 @@ function render() {
   byId("activate-bond").disabled = !connected || !flow.bondVault || flow.bondActive;
   byId("approve-reserve").disabled = !connected || !flow.controller || !flow.bondActive;
   byId("deposit-reserve").disabled = !connected || !flow.controller || !flow.bondActive;
+  byId("use-pilot-deposit").disabled = !connected || !flow.controller || !flow.bondActive || Boolean(flow.depositTransaction);
   byId("generate-proof").disabled = !flow.depositTransaction || !flow.depositBlock;
   byId("submit-proof").disabled = !connected || !flow.controller || !flow.proofCalldata;
 
@@ -456,6 +457,25 @@ async function depositReserve() {
   }
 }
 
+function usePilotDeposit() {
+  flow.depositTransaction = pilot.depositTransactionHash;
+  flow.depositBlock = pilot.depositBlockNumber;
+  flow.depositId = pilot.depositId;
+  flow.depositAmount = pilot.amount;
+  flow.depositAccount = pilot.beneficiary;
+  flow.proofCalldata = null;
+  flow.proofTransaction = null;
+  saveFlow();
+  setActionState(
+    "deposit-state",
+    `Recorded 5 USDC deposit selected from Sepolia block ${flow.depositBlock}.`,
+    "success",
+    flow.depositTransaction,
+    networks.source.explorerUrl,
+  );
+  render();
+}
+
 async function validateSourceDeposit() {
   const [receipt, transaction] = await Promise.all([
     publicRpc(networks.source.rpcUrl, "eth_getTransactionReceipt", [flow.depositTransaction]),
@@ -548,6 +568,7 @@ function bindActions() {
   byId("activate-bond").addEventListener("click", activateBond);
   byId("approve-reserve").addEventListener("click", approveReserve);
   byId("deposit-reserve").addEventListener("click", depositReserve);
+  byId("use-pilot-deposit").addEventListener("click", usePilotDeposit);
   byId("generate-proof").addEventListener("click", generateProof);
   byId("submit-proof").addEventListener("click", submitProof);
 }
