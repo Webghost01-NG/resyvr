@@ -18,3 +18,8 @@ claim.
 The issuer launchpad also reads `config/issuance.json` and resumes from the
 recorded deployment. See [`../docs/wallet-flow.md`](../docs/wallet-flow.md) for
 the complete signature and failure-state sequence.
+
+The interface uses a code-native proof orbit to show the pilot's actual
+Sepolia → Attestcoin → Creditcoin route. Section reveals and pointer depth are
+implemented in `motion.js`; both automatically stop when the visitor enables
+reduced motion. No animation library or image asset is required.
