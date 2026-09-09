@@ -33,8 +33,10 @@ are recorded in
 
 ## Issuer core
 
-`IssuerFactory` creates a deterministic controller and isolated ERC-20 token
-for each issuer ID. The transaction sender becomes that issuer's administrator.
+`IssuerFactory` creates a deterministic controller, isolated ERC-20 token, and
+native CTC bond vault for each issuer ID. The transaction sender becomes that
+issuer's administrator. The factory-wide minimum CTC bond is immutable, so an
+issuer cannot weaken its own activation threshold.
 The registry records the administrator, source chain key, vault, optional
 smart-account executor, reserve asset, controller, token, and decimals. These
 values are immutable inside the deployed controller; the factory offers no
@@ -55,3 +57,10 @@ forge script script/DeployIssuerFactory.s.sol:DeployIssuerFactory \
   --rpc-url "$CREDITCOIN_RPC_URL" \
   --broadcast
 ```
+
+Set `RESYVR_MINIMUM_CTC_BOND` to the minimum native CTC amount in wei before
+deploying the factory. Each bond starts inactive. Its issuer administrator must
+explicitly deposit CTC and activate issuance. An active bond cannot be
+withdrawn; the administrator must first deactivate issuance, which immediately
+blocks new proof-backed minting. The MVP has no slashing path and makes no USD
+claim about the bond's value.

@@ -4,6 +4,7 @@ pragma solidity 0.8.30;
 import { Test } from "forge-std/Test.sol";
 import { EvmV1Decoder } from "@gluwa/asc-contracts/contracts/common/EvmV1Decoder.sol";
 import { INativeQueryVerifier } from "@gluwa/asc-contracts/contracts/write-ability/common/INativeQueryVerifier.sol";
+import { CTCBondVault } from "../src/CTCBondVault.sol";
 import { IssuerController } from "../src/IssuerController.sol";
 import { IssuerFactory } from "../src/IssuerFactory.sol";
 import { IssuerToken } from "../src/IssuerToken.sol";
@@ -31,6 +32,7 @@ contract IssuerFactoryTest is Test {
     uint64 internal constant SOURCE_CHAIN_KEY = 1;
     uint64 internal constant BLOCK_HEIGHT = 11_667_800;
     uint256 internal constant AMOUNT = 7_500_000;
+    uint256 internal constant MINIMUM_BOND = 100 ether;
 
     address internal administrator = makeAddr("issuer administrator");
     address internal sourceVault = address(0xBEEF);
@@ -44,7 +46,12 @@ contract IssuerFactoryTest is Test {
     function setUp() external {
         IssuerMockQueryVerifier verifier = new IssuerMockQueryVerifier();
         vm.etch(VERIFIER_PRECOMPILE, address(verifier).code);
-        factory = new IssuerFactory();
+        factory = new IssuerFactory(MINIMUM_BOND);
+    }
+
+    function testFactoryRejectsZeroMinimumBond() external {
+        vm.expectRevert(IssuerFactory.InvalidIssuerConfiguration.selector);
+        new IssuerFactory(0);
     }
 
     function testCreatesDeterministicIsolatedIssuerPair() external {
@@ -58,6 +65,10 @@ contract IssuerFactoryTest is Test {
         IssuerController controller = IssuerController(controllerAddress);
         IssuerToken token = IssuerToken(tokenAddress);
         assertEq(address(controller.token()), tokenAddress);
+        assertEq(controller.bondVault().administrator(), administrator);
+        assertEq(controller.bondVault().controller(), controllerAddress);
+        assertEq(controller.bondVault().minimumBond(), MINIMUM_BOND);
+        assertFalse(controller.bondVault().active());
         assertEq(controller.administrator(), administrator);
         assertEq(controller.SOURCE_CHAIN_KEY(), SOURCE_CHAIN_KEY);
         assertEq(controller.SOURCE_VAULT(), sourceVault);
@@ -78,7 +89,9 @@ contract IssuerFactoryTest is Test {
             address recordedReserve,
             address recordedController,
             address recordedToken,
-            uint8 recordedDecimals
+            address recordedBondVault,
+            uint8 recordedDecimals,
+            uint256 recordedMinimumBond
         ) = factory.issuers(ISSUER_ID);
         assertEq(recordedAdministrator, administrator);
         assertEq(recordedChainKey, SOURCE_CHAIN_KEY);
@@ -87,11 +100,14 @@ contract IssuerFactoryTest is Test {
         assertEq(recordedReserve, reserveAsset);
         assertEq(recordedController, controllerAddress);
         assertEq(recordedToken, tokenAddress);
+        assertEq(recordedBondVault, address(controller.bondVault()));
         assertEq(recordedDecimals, 6);
+        assertEq(recordedMinimumBond, MINIMUM_BOND);
     }
 
     function testVerifiedDepositMintsExactAmountToEventBeneficiary() external {
         (IssuerController controller, IssuerToken token) = _createIssuer();
+        _fundAndActivate(controller);
 
         _executeDeposit(controller, _encodedDepositTransaction(DEPOSIT_ID, beneficiary, depositor, AMOUNT));
 
@@ -111,6 +127,7 @@ contract IssuerFactoryTest is Test {
 
     function testAdministratorCanPauseAndUnpauseIssuance() external {
         (IssuerController controller, IssuerToken token) = _createIssuer();
+        _fundAndActivate(controller);
         vm.prank(administrator);
         controller.setIssuancePaused(true);
 
@@ -153,6 +170,72 @@ contract IssuerFactoryTest is Test {
         factory.createIssuer(parameters);
     }
 
+    function testIssuanceRequiresFundedActiveBond() external {
+        (IssuerController controller, IssuerToken token) = _createIssuer();
+
+        vm.expectRevert(IssuerController.IssuanceIsInactive.selector);
+        _executeDeposit(controller, _encodedDepositTransaction(DEPOSIT_ID, beneficiary, depositor, AMOUNT));
+        assertFalse(controller.verifiedDepositIds(DEPOSIT_ID));
+        assertEq(token.totalSupply(), 0);
+
+        CTCBondVault bondVault = controller.bondVault();
+        vm.deal(administrator, MINIMUM_BOND);
+        vm.prank(administrator);
+        bondVault.depositBond{ value: MINIMUM_BOND }();
+        vm.prank(administrator);
+        bondVault.activateIssuance();
+
+        _executeDeposit(controller, _encodedDepositTransaction(DEPOSIT_ID, beneficiary, depositor, AMOUNT));
+        assertEq(token.totalSupply(), AMOUNT);
+    }
+
+    function testCannotActivateBelowMinimumBond() external {
+        (IssuerController controller,) = _createIssuer();
+        CTCBondVault bondVault = controller.bondVault();
+        vm.deal(administrator, MINIMUM_BOND - 1);
+        vm.prank(administrator);
+        bondVault.depositBond{ value: MINIMUM_BOND - 1 }();
+
+        vm.expectRevert(abi.encodeWithSelector(CTCBondVault.BondBelowMinimum.selector, MINIMUM_BOND - 1, MINIMUM_BOND));
+        vm.prank(administrator);
+        bondVault.activateIssuance();
+    }
+
+    function testWithdrawalRequiresExplicitDeactivation() external {
+        (IssuerController controller,) = _createIssuer();
+        _fundAndActivate(controller);
+        CTCBondVault bondVault = controller.bondVault();
+
+        vm.expectRevert(CTCBondVault.IssuanceIsActive.selector);
+        vm.prank(administrator);
+        bondVault.withdrawBond(1 ether, payable(administrator));
+
+        vm.prank(administrator);
+        bondVault.deactivateIssuance();
+        uint256 balanceBefore = administrator.balance;
+        vm.prank(administrator);
+        bondVault.withdrawBond(MINIMUM_BOND, payable(administrator));
+
+        assertEq(administrator.balance, balanceBefore + MINIMUM_BOND);
+        assertEq(address(bondVault).balance, 0);
+        assertFalse(bondVault.active());
+    }
+
+    function testUnauthorizedAccountCannotControlBond() external {
+        (IssuerController controller,) = _createIssuer();
+        CTCBondVault bondVault = controller.bondVault();
+        address attacker = makeAddr("bond attacker");
+        vm.deal(attacker, MINIMUM_BOND);
+
+        vm.expectRevert(CTCBondVault.OnlyAdministrator.selector);
+        vm.prank(attacker);
+        bondVault.depositBond{ value: MINIMUM_BOND }();
+
+        vm.expectRevert(CTCBondVault.OnlyAdministrator.selector);
+        vm.prank(attacker);
+        bondVault.activateIssuance();
+    }
+
     function _createIssuer() internal returns (IssuerController controller, IssuerToken token) {
         vm.prank(administrator);
         (address controllerAddress, address tokenAddress) = factory.createIssuer(_parameters());
@@ -171,6 +254,14 @@ contract IssuerFactoryTest is Test {
             tokenName: "Resyvr USD Alpha",
             tokenSymbol: "rvUSDA"
         });
+    }
+
+    function _fundAndActivate(IssuerController controller) internal {
+        vm.deal(administrator, MINIMUM_BOND);
+        vm.startPrank(administrator);
+        controller.bondVault().depositBond{ value: MINIMUM_BOND }();
+        controller.bondVault().activateIssuance();
+        vm.stopPrank();
     }
 
     function _executeDeposit(IssuerController controller, bytes memory encodedTransaction) internal {
