@@ -95,6 +95,8 @@ Wallet transactions use a buffered public-RPC gas estimate so MetaMask does not
 fall back to a gas limit above the network cap. When a connected administrator
 has created at least two factory issuers, the launchpad shows an on-chain asset
 portfolio with each token address, controller, network, decimals, and copy link.
+Submitted transaction hashes are saved before receipt polling, so refreshing
+the page recovers confirmed progress and prevents blind duplicate submissions.
 
 ## Status
 

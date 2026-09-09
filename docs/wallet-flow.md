@@ -84,6 +84,12 @@ submitting another transaction. A timeout can leave the on-chain result unknown.
 Keep using the issuer's administrator wallet for bond actions and confirm the
 account and network shown in the next request.
 
+The browser stores a submitted hash and its action context before polling for a
+receipt. After a refresh it checks that receipt through the action's public RPC,
+restores confirmed vault, issuer, bond, approval, deposit, or mint state, and
+keeps all transaction buttons disabled while the result is still pending. If a
+different wallet is connected, recovery asks for the submitting account.
+
 After one wallet has created at least two issuers through the factory, **Your
 issued assets** appears below the launch steps. It is rebuilt from indexed
 `IssuerCreated` logs and live token metadata; wallets with zero or one issuer do
