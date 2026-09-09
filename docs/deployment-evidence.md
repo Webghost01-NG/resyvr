@@ -26,6 +26,24 @@ maps are also checked directly by `npm run evidence:verify`.
 
 ## Issuer deployment
 
+The complete pilot issuer is deployed and source-verified on Creditcoin CC3:
+
+| Component | Address |
+| --- | --- |
+| Issuer factory | [`0xd951…323F`](https://creditcoin-testnet.blockscout.com/address/0xd951A7094814DC2Ab9BE5F5E263A0081C89f323F) |
+| Issuer controller | [`0x81a5…2948`](https://creditcoin-testnet.blockscout.com/address/0x81a5E9379eaa4a2dAed7108120e8059d6CeF2948) |
+| rvUSD token | [`0xbCb8…5Afa`](https://creditcoin-testnet.blockscout.com/address/0xbCb8eE1A76842d4Fea3Eca2dD65768efF4645Afa) |
+| CTC bond vault | [`0x164e…B55f`](https://creditcoin-testnet.blockscout.com/address/0x164e57032b0224C435d7ADD047D57463efcBB55f) |
+
+The successful sequence is recorded with exact receipts in
+`config/issuance.json`: factory deployment at block 5,458,124, issuer creation
+at block 5,458,126, 1 CTC bond funding at block 5,458,129, bond activation at
+block 5,458,131, and proof-backed minting at block 5,458,200. The final
+[`0xe5c1…4ddb`](https://creditcoin-testnet.blockscout.com/tx/0xe5c1d4c22e4ea74ff241f6192aea2c786c55f9faac6f2678bc79c6e28c814ddb)
+transaction consumed the recorded Attestcoin query, raised verified reserve to
+5,000,000 base units, and minted exactly 5,000,000 rvUSD base units to the
+proven beneficiary.
+
 `config/factory-deployment.json` contains the exact compiled factory creation
 bytecode and its hash. `npm run deployment:prepare` regenerates it from the
 Foundry artifact. The launchpad submits that bytecode through MetaMask, then
@@ -40,6 +58,12 @@ for all four issuer contracts to Creditcoin Blockscout.
 `npm run evidence:verify` then additionally requires exact equality between
 verified reserve, token supply, and beneficiary balance, plus a funded active
 CTC bond.
+
+The source vault now holds 6 test USDC because a later 1-USDC deposit is also
+confirmed on Sepolia. The issuer controller and rvUSD supply remain at 5 units:
+only the original 5-USDC deposit has a submitted proof. This difference is
+expected and demonstrates that unproven deposits do not mint destination
+tokens.
 
 ## Negative paths
 

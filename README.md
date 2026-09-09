@@ -55,10 +55,9 @@ npm run dashboard
 
 <http://127.0.0.1:8000/dashboard/>
 
-The page uses read-only JSON-RPC calls to compare the live Creditcoin controller
-with the tracked Sepolia and CC3 deployment evidence. It shows stale, waiting,
-unavailable, and error states explicitly. Token supply, coverage, and the CTC
-bond remain marked pending until the issuer core is deployed and recorded.
+The page uses read-only JSON-RPC calls to compare the live issuer controller,
+rvUSD supply, and CTC bond with the tracked Sepolia and CC3 deployment evidence.
+It shows stale, waiting, unavailable, and error states explicitly.
 
 The issuer launchpad guides MetaMask through explicit CC3 and Sepolia network
 switches, issuer creation, CTC bond activation, reserve approval and deposit,
@@ -67,7 +66,8 @@ and effect before the wallet opens.
 
 ## Status
 
-The Sepolia reserve vault and Creditcoin proof controller are deployed, and one
-real 5 test-USDC deposit proof has updated CC3 reserve accounting. The isolated
-issuer token and CTC bond contracts are implemented and tested but are not yet
-claimed as deployed.
+The Sepolia reserve vault and the complete Creditcoin issuer system are live on
+testnet with verified source code. One genuine 5 test-USDC deposit proof minted
+exactly 5 rvUSD through the bonded issuer controller. The source vault currently
+holds 6 test USDC because a second 1-USDC deposit was made after the recorded
+5-USDC pilot proof; that additional deposit has not been used to mint.

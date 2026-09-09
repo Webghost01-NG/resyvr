@@ -109,7 +109,7 @@ function applyTrackedEvidence(networks, pilot, deployment) {
   const sourceExplorer = networks.source.explorerUrl;
   const destinationExplorer = networks.destination.explorerUrl;
   const sourceTransaction = pilot.depositTransactionHash || deployment.proof?.sourceTransactionHash;
-  const proofTransaction = pilot.proofSubmissionTransactionHash || deployment.proof?.submissionTransactionHash;
+  const proofTransaction = deployment.proof?.submissionTransactionHash || pilot.proofSubmissionTransactionHash;
 
   setText("source-block", Number(pilot.depositBlockNumber).toLocaleString("en-US"));
   setText("deposit-id", pilot.depositId);
@@ -152,6 +152,25 @@ function applyTrackedEvidence(networks, pilot, deployment) {
   const decimals = networks.source.reserveAsset.decimals;
   setText("reserve-value", `${formatUnits(reserve, decimals)} ${networks.source.reserveAsset.symbol}`);
   setText("reserve-detail", "Tracked on-chain evidence · refreshing live value");
+}
+
+function activeDeployment(baseDeployment, issuance) {
+  if (!issuance.issuerController || !issuance.token || !issuance.bondVault || !issuance.proofSubmission) {
+    return baseDeployment;
+  }
+
+  return {
+    ...baseDeployment,
+    contract: "IssuerController",
+    address: issuance.issuerController,
+    proof: {
+      ...baseDeployment.proof,
+      submissionTransactionHash: issuance.proofSubmission.transactionHash,
+      submissionBlockNumber: issuance.proofSubmission.blockNumber,
+      submissionGasUsed: issuance.proofSubmission.gasUsed,
+      queryId: issuance.proofSubmission.queryId,
+    },
+  };
 }
 
 async function loadLiveState(networks, deployment) {
@@ -248,11 +267,13 @@ async function refresh() {
   document.body.dataset.state = "waiting";
 
   try {
-    const [networks, pilot, deployment] = await Promise.all([
+    const [networks, pilot, baseDeployment, issuance] = await Promise.all([
       fetchJson("../config/networks.json"),
       fetchJson("../config/pilot.json"),
       fetchJson("../docs/deployments/creditcoin.json"),
+      fetchJson("../config/issuance.json"),
     ]);
+    const deployment = activeDeployment(baseDeployment, issuance);
     applyTrackedEvidence(networks, pilot, deployment);
     await loadLiveState(networks, deployment);
   } catch (error) {

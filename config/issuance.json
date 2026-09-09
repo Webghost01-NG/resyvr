@@ -32,7 +32,13 @@
     "gasUsed": "44737",
     "explorer": "https://creditcoin-testnet.blockscout.com/tx/0x44d15f385092690aae23c46a75859ddfb316cbf61d52b693220f89e32f817794"
   },
-  "proofSubmission": null,
+  "proofSubmission": {
+    "transactionHash": "0xe5c1d4c22e4ea74ff241f6192aea2c786c55f9faac6f2678bc79c6e28c814ddb",
+    "blockNumber": 5458200,
+    "gasUsed": "336349",
+    "explorer": "https://creditcoin-testnet.blockscout.com/tx/0xe5c1d4c22e4ea74ff241f6192aea2c786c55f9faac6f2678bc79c6e28c814ddb",
+    "queryId": "0x6f6b2a76f4bf4ad4d67df82b8e8fd0a115a9dd2230edafd28b5c2e2976c196f1"
+  },
   "sourceVerification": {
     "status": "verified",
     "verifiedAt": "2026-09-09",
