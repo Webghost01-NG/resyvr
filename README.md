@@ -99,11 +99,16 @@ has created at least two factory issuers, the launchpad shows an on-chain asset
 portfolio with each token address, controller, network, decimals, and management
 action. Reopening an asset restores its live bond state and latest unconsumed
 reserve deposit so the administrator can finish the proof and mint sequence.
+The reserve, total supply, coverage, CTC bond, immutable configuration, and
+connected-wallet token balance switch to the selected issuer's live contracts.
 Importing a token contract into MetaMask only makes an existing balance visible;
 tokens reach a holder through proof-backed minting to that deposit's recipient
 or a later ERC-20 transfer on Creditcoin CC3.
 Submitted transaction hashes are saved before receipt polling, so refreshing
 the page recovers confirmed progress and prevents blind duplicate submissions.
+Before requesting a reserve transaction, the launchpad reads the connected
+wallet's current test-USDC balance and vault allowance. Amounts above the live
+balance and unapproved deposits are blocked with a specific message.
 
 ## Status
 

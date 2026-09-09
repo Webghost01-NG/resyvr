@@ -34,6 +34,10 @@ if (!wallet.includes("recordPendingAction")) throw new Error("Wallet flow does n
 if (!wallet.includes("selectIssuer")) throw new Error("Issuer portfolio cannot reopen an issuer workflow");
 if (!wallet.includes("VERIFIED_DEPOSIT_SELECTOR")) throw new Error("Issuer recovery does not reject consumed deposits");
 if (!definedIds.has("reserve-beneficiary")) throw new Error("Reserve flow has no mint recipient input");
+if (!wallet.includes("refreshReserveFunds")) throw new Error("Reserve flow does not validate live balance and allowance");
+if (wallet.includes("explorerUrl}/token/")) throw new Error("Token links use the explorer route that fails before indexing");
+if (!wallet.includes('CustomEvent("resyvr:issuer-selected"')) throw new Error("Wallet flow does not publish the selected issuer");
+if (!app.includes('addEventListener("resyvr:issuer-selected"')) throw new Error("Dashboard metrics do not follow the selected issuer");
 if (!/^0x[0-9a-f]{40}$/i.test(networks.source.transactionExecutor || "")) {
   throw new Error("Source transaction executor is not a valid address");
 }
