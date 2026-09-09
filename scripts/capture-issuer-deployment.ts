@@ -103,33 +103,35 @@ async function main(): Promise<void> {
   const proof = transactions.find(
     (transaction) => isTo(transaction, controller) && hasSelector(transaction, selectors.executeDeposit),
   );
-  if (!bondDeposit || !activation || !proof) {
-    throw new Error('successful bond deposit, activation, or proof submission is missing');
+  if (!bondDeposit || !activation) {
+    throw new Error('successful bond deposit or activation is missing');
   }
   const [factoryReceipt, bondReceipt, activationReceipt, proofReceipt] = await Promise.all([
     provider.getTransactionReceipt(factoryCreation.hash),
     provider.getTransactionReceipt(bondDeposit.hash),
     provider.getTransactionReceipt(activation.hash),
-    provider.getTransactionReceipt(proof.hash),
+    proof ? provider.getTransactionReceipt(proof.hash) : Promise.resolve(null),
   ]);
-  if (!factoryReceipt || !bondReceipt || !activationReceipt || !proofReceipt) throw new Error('a receipt is unavailable');
-  const proofLog = proofReceipt.logs
-    .map((log) => {
-      try {
-        return controllerEvents.parseLog(log);
-      } catch {
-        return null;
-      }
-    })
-    .find(Boolean);
-  if (!proofLog || proofLog.args.depositId.toLowerCase() !== pilot.depositId.toLowerCase()) {
+  if (!factoryReceipt || !bondReceipt || !activationReceipt) throw new Error('a deployment receipt is unavailable');
+  const proofLog = proofReceipt
+    ? proofReceipt.logs
+        .map((log) => {
+          try {
+            return controllerEvents.parseLog(log);
+          } catch {
+            return null;
+          }
+        })
+        .find(Boolean)
+    : null;
+  if (proofReceipt && (!proofLog || proofLog.args.depositId.toLowerCase() !== pilot.depositId.toLowerCase())) {
     throw new Error('proof receipt does not contain the pilot deposit');
   }
   for (const address of [factory, controller, token, bondVault]) {
     if ((await provider.getCode(address)) === '0x') throw new Error(`no live code at ${address}`);
   }
 
-  const transactionRecord = (transaction: ExplorerTransaction, receipt: NonNullable<typeof proofReceipt>) => ({
+  const transactionRecord = (transaction: ExplorerTransaction, receipt: NonNullable<typeof factoryReceipt>) => ({
     transactionHash: transaction.hash.toLowerCase(),
     blockNumber: receipt.blockNumber,
     gasUsed: receipt.gasUsed.toString(),
@@ -146,14 +148,15 @@ async function main(): Promise<void> {
     issuerCreation: transactionRecord(createIssuer, creationReceipt),
     bondDeposit: transactionRecord(bondDeposit, bondReceipt),
     bondActivation: transactionRecord(activation, activationReceipt),
-    proofSubmission: {
-      ...transactionRecord(proof, proofReceipt),
-      queryId: proofLog.args.queryId,
-    },
+    proofSubmission:
+      proof && proofReceipt && proofLog
+        ? { ...transactionRecord(proof, proofReceipt), queryId: proofLog.args.queryId }
+        : null,
   };
   await writeFile('config/issuance.json', `${JSON.stringify(record, null, 2)}\n`, 'utf8');
   console.log(`Captured factory ${factory}`);
   console.log(`Captured issuer controller ${controller}`);
+  console.log(`Proof submission ${proof ? 'captured' : 'pending'}`);
 }
 
 void main().catch((error: unknown) => {

@@ -578,6 +578,9 @@ function bindActions() {
 }
 
 async function initialize() {
+  if (new URLSearchParams(window.location.search).get("reset") === "1") {
+    localStorage.removeItem(STORAGE_KEY);
+  }
   loadSavedFlow();
   [networks, pilot, issuance, factoryDeployment] = await Promise.all([
     fetchJson("../config/networks.json"),
