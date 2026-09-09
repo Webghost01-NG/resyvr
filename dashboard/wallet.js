@@ -3,6 +3,7 @@ import {
   encodeCreateIssuer,
   encodeDeposit,
   encodeExecuteDeposit,
+  encodeFactoryDeployment,
   parseUnits,
 } from "./encoding.mjs";
 
@@ -297,12 +298,6 @@ async function connectWallet() {
   } catch (error) {
     byId("signature-effect").textContent = friendlyError(error);
   }
-}
-
-function encodeFactoryDeployment(bytecode, minimumBondWei) {
-  if (!/^0x[0-9a-f]+$/i.test(bytecode)) throw new Error("Factory bytecode is unavailable");
-  const minimumBond = BigInt(minimumBondWei).toString(16).padStart(64, "0");
-  return `${bytecode}${minimumBond}`;
 }
 
 async function deployFactory() {
