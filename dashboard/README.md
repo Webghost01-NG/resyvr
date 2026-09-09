@@ -26,6 +26,10 @@ the portfolio stays hidden until at least two matching on-chain issuers exist.
 Each portfolio card can reopen its issuer workflow and exposes the token address
 holders import on Creditcoin CC3. The reserve form can mint to the connected
 wallet or a separately entered recipient address after proof verification.
+Selecting a card also changes the public metrics and immutable configuration to
+that issuer's live controller. Reserve actions validate live wallet balance and
+vault allowance before requesting a signature. Token links use the explorer's
+contract-address route so an unminted token does not lead to an unindexed page.
 See [`../docs/wallet-flow.md`](../docs/wallet-flow.md) for the six steps,
 transaction confirmations, and failure states.
 

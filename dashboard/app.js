@@ -4,6 +4,7 @@ const selectors = {
   token: "0xfc0c546a",
   bondVault: "0x990826b3",
   totalSupply: "0x18160ddd",
+  balanceOf: "0x70a08231",
   decimals: "0x313ce567",
   active: "0x02fb0c5e",
   minimumBond: "0xaa7517e1",
@@ -15,6 +16,8 @@ const selectors = {
 };
 
 const staleAfterSeconds = 180;
+let selectedIssuer = null;
+let refreshRequest = 0;
 
 function byId(id) {
   const element = document.getElementById(id);
@@ -40,6 +43,10 @@ function decodeAddress(value) {
   const normalized = value.slice(2).padStart(64, "0");
   const address = `0x${normalized.slice(-40)}`;
   return /^0x0{40}$/.test(address) ? null : address;
+}
+
+function addressArgument(address) {
+  return address.toLowerCase().replace(/^0x/, "").padStart(64, "0");
 }
 
 function formatUnits(value, decimals, maximumFractionDigits = 2) {
@@ -118,6 +125,12 @@ function applyTrackedEvidence(networks, pilot, deployment) {
   const sourceTransaction = pilot.depositTransactionHash || deployment.proof?.sourceTransactionHash;
   const proofTransaction = deployment.proof?.submissionTransactionHash || pilot.proofSubmissionTransactionHash;
 
+  document.querySelector(".token-core .token-symbol").textContent = "rv";
+  document.querySelector(".token-core strong").textContent = "USD";
+  setText("coverage-title", "What the chain can prove now");
+  document.querySelector("#coverage .source-note").textContent = "Live values use read-only JSON-RPC against the deployed pilot issuer contracts.";
+  setText("proof-title", "One deposit. Three inspectable steps.");
+
   setText("source-block", Number(pilot.depositBlockNumber).toLocaleString("en-US"));
   setText("deposit-id", pilot.depositId);
   byId("deposit-id").title = pilot.depositId;
@@ -161,6 +174,58 @@ function applyTrackedEvidence(networks, pilot, deployment) {
   setText("reserve-detail", "Tracked on-chain evidence · refreshing live value");
 }
 
+function applySelectedIssuerEvidence(networks, issuer) {
+  const sourceExplorer = networks.source.explorerUrl;
+  const destinationExplorer = networks.destination.explorerUrl;
+  const symbol = issuer.symbol || "TOKEN";
+
+  document.querySelector(".token-core .token-symbol").textContent = "";
+  document.querySelector(".token-core strong").textContent = symbol;
+  setText("coverage-title", `What ${symbol} can prove now`);
+  document.querySelector("#coverage .source-note").textContent = `Live values for ${issuer.name || symbol} use its selected CC3 controller.`;
+  setText("proof-title", `${symbol} issuance trail`);
+
+  setText("source-block", issuer.depositBlock ? Number(issuer.depositBlock).toLocaleString("en-US") : "Pending");
+  setText("deposit-id", issuer.depositId || "No reserve deposit yet");
+  byId("deposit-id").title = issuer.depositId || "";
+  if (issuer.depositTransaction) {
+    setLink("source-transaction-link", `${sourceExplorer}/tx/${issuer.depositTransaction}`, "Inspect Sepolia transaction ↗");
+  } else {
+    setPendingLink("source-transaction-link", "Reserve deposit pending");
+  }
+
+  const proofAccepted = Boolean(issuer.proofTransaction);
+  const attestationStatus = byId("attestation-status");
+  attestationStatus.textContent = proofAccepted ? "Proof submitted" : "Awaiting proof";
+  attestationStatus.className = `status ${proofAccepted ? "verified-status" : "waiting-status"}`;
+  setText("merkle-siblings", proofAccepted ? "Verified" : "—");
+  setText("continuity-roots", proofAccepted ? "Verified" : "—");
+  setText("attestation-detail", proofAccepted ? "Proof accepted by the selected issuer controller" : "Complete the reserve deposit and generate its Attestcoin proof");
+  setText("proof-block", proofAccepted ? "Confirmed" : "Pending");
+  setText("replay-result", proofAccepted ? "Consumed" : "Not submitted");
+  if (issuer.proofTransaction) {
+    setLink("proof-transaction-link", `${destinationExplorer}/tx/${issuer.proofTransaction}`, "Inspect Creditcoin transaction ↗");
+  } else {
+    setPendingLink("proof-transaction-link", "Proof submission pending");
+  }
+
+  setText("issuer-id", issuer.issuerId);
+  setText("source-chain-key", `${issuer.sourceChainKey} · ${networks.source.name}`);
+  setLink("source-vault-link", `${sourceExplorer}/address/${issuer.sourceVault}`, shortHex(issuer.sourceVault));
+  setLink("reserve-asset-link", `${sourceExplorer}/address/${issuer.reserveAsset}`, shortHex(issuer.reserveAsset));
+  setLink("controller-link", `${destinationExplorer}/address/${issuer.controller}`, shortHex(issuer.controller));
+  setLink("header-contract-link", `${destinationExplorer}/address/${issuer.controller}`, "View contract ↗");
+
+  setText("reserve-value", "Reading…");
+  setText("reserve-detail", `Selected issuer · ${symbol}`);
+  setText("supply-value", "Reading…");
+  setText("supply-detail", issuer.token ? `Token contract · ${shortHex(issuer.token)}` : "Reading token contract");
+  setText("coverage-value", "Reading…");
+  setText("coverage-detail", "Confirmed reserve ÷ current token supply");
+  setText("bond-value", "Reading…");
+  setText("bond-detail", "Reading the selected issuer bond vault");
+}
+
 function activeDeployment(baseDeployment, issuance) {
   if (!issuance.issuerController || !issuance.token || !issuance.bondVault || !issuance.proofSubmission) {
     return baseDeployment;
@@ -180,7 +245,7 @@ function activeDeployment(baseDeployment, issuance) {
   };
 }
 
-async function loadLiveState(networks, deployment) {
+async function loadLiveState(networks, deployment, requestId) {
   const rpcUrl = networks.destination.rpcUrl;
   const controllerAddress = deployment.address;
   const [blockNumberHex, reserveHex, issuerId, sourceChainKeyHex, sourceVaultHex, reserveAssetHex] = await Promise.all([
@@ -191,6 +256,7 @@ async function loadLiveState(networks, deployment) {
     contractCall(rpcUrl, controllerAddress, selectors.sourceVault),
     contractCall(rpcUrl, controllerAddress, selectors.reserveAsset),
   ]);
+  if (requestId !== refreshRequest) return;
 
   const latestBlock = await rpc(rpcUrl, "eth_getBlockByNumber", [blockNumberHex, false]);
   const blockNumber = decodeUint(blockNumberHex);
@@ -209,7 +275,8 @@ async function loadLiveState(networks, deployment) {
     && decodeAddress(reserveAssetHex)?.toLowerCase() === deployment.configuration.reserveAsset.toLowerCase();
 
   if (!matchesConfiguration) throw new Error("Live controller configuration differs from tracked deployment evidence");
-  setText("configuration-source", `Live controller configuration matches tracked evidence at CC3 block ${blockNumber}.`);
+  const viewLabel = deployment.viewLabel || "Pilot";
+  setText("configuration-source", `Live ${viewLabel} controller configuration matches at CC3 block ${blockNumber}.`);
 
   let tokenAddress = null;
   let bondVaultAddress = null;
@@ -221,14 +288,24 @@ async function loadLiveState(networks, deployment) {
   }
 
   if (tokenAddress) {
-    const [supplyHex, tokenDecimalsHex] = await Promise.all([
+    const [supplyHex, tokenDecimalsHex, holderBalanceHex] = await Promise.all([
       contractCall(rpcUrl, tokenAddress, selectors.totalSupply),
       contractCall(rpcUrl, tokenAddress, selectors.decimals),
+      deployment.holder
+        ? contractCall(rpcUrl, tokenAddress, `${selectors.balanceOf}${addressArgument(deployment.holder)}`)
+        : Promise.resolve(null),
     ]);
+    if (requestId !== refreshRequest) return;
     const supply = decodeUint(supplyHex);
     const tokenDecimals = Number(decodeUint(tokenDecimalsHex));
     setText("supply-value", formatUnits(supply, tokenDecimals));
-    setText("supply-detail", `Live issuer token · ${shortHex(tokenAddress)}`);
+    const holderBalance = holderBalanceHex === null ? null : decodeUint(holderBalanceHex);
+    setText(
+      "supply-detail",
+      holderBalance === null
+        ? `Live issuer token · ${shortHex(tokenAddress)}`
+        : `Your balance ${formatUnits(holderBalance, tokenDecimals)} ${deployment.symbol} · ${shortHex(tokenAddress)}`,
+    );
     setText("coverage-value", coveragePercent(reserve, supply) || "No supply");
     setText("coverage-detail", supply === 0n ? "Coverage starts when proven minting begins." : "Confirmed reserve ÷ current token supply");
   } else {
@@ -244,6 +321,7 @@ async function loadLiveState(networks, deployment) {
       contractCall(rpcUrl, bondVaultAddress, selectors.active),
       contractCall(rpcUrl, bondVaultAddress, selectors.minimumBond),
     ]);
+    if (requestId !== refreshRequest) return;
     const balance = decodeUint(balanceHex);
     const active = decodeUint(activeHex) === 1n;
     const minimum = decodeUint(minimumHex);
@@ -257,17 +335,18 @@ async function loadLiveState(networks, deployment) {
   const stale = blockAge > staleAfterSeconds;
   document.body.dataset.state = stale ? "stale" : "live";
   setText("state-icon", stale ? "!" : "✓");
-  setText("system-state", stale ? "RPC data is stale" : "Pilot evidence verified");
+  setText("system-state", stale ? "RPC data is stale" : `${viewLabel} live state verified`);
   setText(
     "system-message",
     stale
       ? `The latest CC3 block is ${blockAge} seconds old. Values are shown, but freshness is outside the ${staleAfterSeconds}-second window.`
-      : `Live controller reads match the recorded deployment. Latest CC3 block is ${blockAge} seconds old.`,
+      : `Live controller reads match ${viewLabel}. Latest CC3 block is ${blockAge} seconds old.`,
   );
   setText("updated-at", `Live read · ${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`);
 }
 
 async function refresh() {
+  const requestId = ++refreshRequest;
   const button = byId("refresh-button");
   button.disabled = true;
   button.textContent = "↻";
@@ -281,16 +360,37 @@ async function refresh() {
       fetchJson("../docs/deployments/creditcoin.json"),
       fetchJson("../config/issuance.json"),
     ]);
-    const deployment = activeDeployment(baseDeployment, issuance);
-    applyTrackedEvidence(networks, pilot, deployment);
-    await loadLiveState(networks, deployment);
+    if (requestId !== refreshRequest) return;
+    let deployment;
+    if (selectedIssuer) {
+      applySelectedIssuerEvidence(networks, selectedIssuer);
+      deployment = {
+        contract: "IssuerController",
+        address: selectedIssuer.controller,
+        holder: selectedIssuer.account,
+        symbol: selectedIssuer.symbol,
+        viewLabel: `${selectedIssuer.name || selectedIssuer.symbol} (${selectedIssuer.symbol})`,
+        configuration: {
+          issuerId: selectedIssuer.issuerId,
+          sourceChainKey: selectedIssuer.sourceChainKey,
+          sourceVault: selectedIssuer.sourceVault,
+          reserveAsset: selectedIssuer.reserveAsset,
+        },
+      };
+    } else {
+      deployment = activeDeployment(baseDeployment, issuance);
+      applyTrackedEvidence(networks, pilot, deployment);
+    }
+    await loadLiveState(networks, deployment, requestId);
   } catch (error) {
+    if (requestId !== refreshRequest) return;
     document.body.dataset.state = "error";
     setText("state-icon", "×");
     setText("system-state", "Live read failed");
     setText("system-message", `${error instanceof Error ? error.message : String(error)}. Tracked evidence remains visible where available.`);
     setText("updated-at", "Live read unavailable");
   } finally {
+    if (requestId !== refreshRequest) return;
     button.disabled = false;
     button.textContent = "↻";
     button.setAttribute("aria-label", "Refresh live blockchain reads");
@@ -298,4 +398,8 @@ async function refresh() {
 }
 
 byId("refresh-button").addEventListener("click", refresh);
+window.addEventListener("resyvr:issuer-selected", (event) => {
+  selectedIssuer = event.detail?.controller ? event.detail : null;
+  void refresh();
+});
 refresh();

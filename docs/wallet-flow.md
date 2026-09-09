@@ -49,6 +49,10 @@ symbol, wallet account, and network before confirming deployment.
    The successful vault event records issuer, depositor,
    beneficiary, amount, and deposit identity. A direct token transfer to the
    vault does not create this recognized deposit event.
+   The form checks the wallet's live test-USDC balance and the selected vault's
+   live allowance before opening MetaMask. If the entered amount exceeds the
+   balance, lower it or acquire more test USDC; repeating approval cannot fix an
+   insufficient balance.
 5. **Generate proof — no wallet signature.** Select **Generate proof**. The
    page checks the successful source receipt, transaction target and sender,
    and expected vault event fields. It waits for Attestcoin to cover the deposit
@@ -100,6 +104,10 @@ not see an empty portfolio section. Select **Manage issuer** to restore that
 asset's immutable addresses, current bond state, and latest unconsumed Sepolia
 deposit. The token contract link is the address holders import into MetaMask on
 Creditcoin CC3. Importing only displays a balance; it does not issue tokens.
+The dashboard's reserve, supply, coverage, bond, configuration, and connected
+wallet balance then use that selected issuer's live contracts. Contract links
+use Blockscout's address route, which remains available before the first mint;
+the explorer's token route may not index an ERC-20 until it emits a transfer.
 
 The pilot's recorded 5-USDC deposit belongs to its fixed issuer and source
 vault. It cannot back a newly created token system, and its consumed proof
