@@ -57,6 +57,8 @@ historical deposit proof alone proves current solvency.
 
 ## Public proof dashboard
 
+**Live demo:** https://webghost01-ng.github.io/resyvr/
+
 Serve the repository root and open the dashboard:
 
 ```bash

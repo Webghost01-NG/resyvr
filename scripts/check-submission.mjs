@@ -13,6 +13,7 @@ const [submission, demo, checklist, hosting, rootIndex, heroScreenshot, portfoli
 ]);
 
 const packageText = `${submission}\n${demo}\n${checklist}\n${hosting}`;
+const publicUrl = "https://webghost01-ng.github.io/resyvr/";
 const normalizedSubmission = submission.toLowerCase().replace(/\s+/g, " ");
 const requiredEvidence = [
   issuance.factory,
@@ -45,6 +46,9 @@ if (/\b(?:TODO|TBD|FIXME)\b/.test(packageText)) {
 
 if (!demo.includes("three-minute demo")) throw new Error("Demo script is not the final three-minute version");
 if (!rootIndex.includes("./dashboard/")) throw new Error("Public project root does not lead to the dashboard");
+if (![submission, checklist, hosting].every((document) => document.includes(publicUrl))) {
+  throw new Error("Submission package does not consistently include the verified public URL");
+}
 for (const [name, screenshot] of [["hero", heroScreenshot], ["portfolio", portfolioScreenshot]]) {
   if (screenshot.length < 10_000 || screenshot.subarray(1, 4).toString() !== "PNG") {
     throw new Error(`${name} screenshot is missing or invalid`);

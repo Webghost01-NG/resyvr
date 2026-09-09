@@ -6,6 +6,8 @@
 
 **Repository:** https://github.com/Webghost01-NG/resyvr
 
+**Live demo:** https://webghost01-ng.github.io/resyvr/
+
 ## 30-second pitch
 
 Resyvr lets an organization launch a reserve-backed asset on Creditcoin without
