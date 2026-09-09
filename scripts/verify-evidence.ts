@@ -61,6 +61,42 @@ async function requireCode(
   expect(code !== '0x', name, `${address} has ${Math.max(0, (code.length - 2) / 2)} runtime bytes`, checks);
 }
 
+async function requireVerifiedSource(
+  explorerUrl: string,
+  address: string,
+  name: string,
+  checks: Check[],
+): Promise<void> {
+  const url = new URL(`/api/v2/smart-contracts/${address}`, explorerUrl);
+  let lastFailure = 'source unavailable';
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      const response = await fetch(url, {
+        headers: { accept: 'application/json', 'user-agent': 'resyvr-evidence/0.1' },
+        signal: AbortSignal.timeout(20_000),
+      });
+      if (!response.ok) {
+        lastFailure = `HTTP ${response.status}`;
+      } else {
+        const payload = (await response.json()) as {
+          is_verified?: boolean;
+          compiler_version?: string;
+          message?: string;
+        };
+        if (payload.is_verified) {
+          checks.push({ name, detail: `${address} compiler=${payload.compiler_version || 'recorded'}` });
+          return;
+        }
+        lastFailure = payload.message || 'empty source';
+      }
+    } catch (error) {
+      lastFailure = error instanceof Error ? error.message : String(error);
+    }
+    if (attempt < 3) await new Promise((resolve) => setTimeout(resolve, 1_000));
+  }
+  throw new Error(`${name}: ${lastFailure} for ${address}`);
+}
+
 async function requireSuccessfulReceipt(
   provider: JsonRpcProvider,
   hash: string,
@@ -92,6 +128,18 @@ async function main(): Promise<void> {
 
   await requireCode(source, sepolia.address, 'Source vault bytecode', checks);
   await requireCode(destination, creditcoin.address, 'Proof controller bytecode', checks);
+  await requireVerifiedSource(
+    new URL(sepolia.explorer.contract).origin,
+    sepolia.address,
+    'Source vault verification',
+    checks,
+  );
+  await requireVerifiedSource(
+    networks.destination.explorerUrl,
+    creditcoin.address,
+    'Proof controller verification',
+    checks,
+  );
   const depositReceipt = await requireSuccessfulReceipt(
     source,
     pilot.depositTransactionHash,
@@ -133,8 +181,18 @@ async function main(): Promise<void> {
   ]);
   expect(equalAddress(vaultAsset, networks.source.reserveAsset.address), 'Vault reserve asset', vaultAsset, checks);
   expect(vaultIssuer === pilot.issuerId, 'Vault issuer ID', vaultIssuer, checks);
-  expect(deposited === BigInt(pilot.amount), 'Vault deposited total', deposited.toString(), checks);
-  expect(reserveBalance === BigInt(pilot.amount), 'Vault token balance', reserveBalance.toString(), checks);
+  expect(
+    deposited === BigInt(sepolia.verifiedReads.totalDeposited),
+    'Vault deposited total',
+    deposited.toString(),
+    checks,
+  );
+  expect(
+    reserveBalance === BigInt(sepolia.verifiedReads.reserveBalance),
+    'Vault token balance',
+    reserveBalance.toString(),
+    checks,
+  );
 
   const controller = new Contract(creditcoin.address, controllerAbi, destination);
   const [chainKey, sourceVault, sourceExecutor, controllerAsset, issuerId, verifiedReserve, beneficiaryBalance, depositUsed, queryUsed] =
@@ -166,6 +224,14 @@ async function main(): Promise<void> {
       requireCode(destination, issuance.token, 'Issuer token bytecode', checks),
       requireCode(destination, issuance.bondVault, 'Bond vault bytecode', checks),
     ]);
+    for (const [name, address] of [
+      ['Issuer factory verification', issuance.factory],
+      ['Issuer controller verification', issuance.issuerController],
+      ['Issuer token verification', issuance.token],
+      ['Bond vault verification', issuance.bondVault],
+    ] as const) {
+      await requireVerifiedSource(networks.destination.explorerUrl, address as unknown as string, name, checks);
+    }
     const factory = new Contract(issuance.factory, factoryAbi, destination);
     const issuerController = new Contract(issuance.issuerController, controllerAbi, destination);
     const token = new Contract(issuance.token, erc20Abi, destination);

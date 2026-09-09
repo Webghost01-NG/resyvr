@@ -8,7 +8,7 @@ import {
 } from "./encoding.mjs";
 
 const ISSUER_CREATED_TOPIC = "0x75118ee2db244652d7ac3bbe9a9f199941ece831c61580f5a72e4b7fa9ef245a";
-const RESERVE_DEPOSITED_TOPIC = "0x9ade6207680ee84077f86cc08de4f401b88731138ea5b583f09bd7266113453";
+const RESERVE_DEPOSITED_TOPIC = "0x9ade6207680ee84077f86cc08de4f401b88731138ea5b583f09bd7266113453d";
 const ISSUER_LOOKUP_SELECTOR = "0xc53a4413";
 const TOKEN_SELECTOR = "0xfc0c546a";
 const BOND_VAULT_SELECTOR = "0x990826b3";
@@ -241,7 +241,7 @@ function render() {
   byId("activate-bond").disabled = !connected || !flow.bondVault || flow.bondActive;
   byId("approve-reserve").disabled = !connected || !flow.controller || !flow.bondActive;
   byId("deposit-reserve").disabled = !connected || !flow.controller || !flow.bondActive;
-  byId("use-pilot-deposit").disabled = !connected || !flow.controller || !flow.bondActive || Boolean(flow.depositTransaction);
+  byId("use-pilot-deposit").disabled = !connected || !flow.controller || !flow.bondActive || Boolean(flow.proofTransaction);
   byId("generate-proof").disabled = !flow.depositTransaction || !flow.depositBlock;
   byId("submit-proof").disabled = !connected || !flow.controller || !flow.proofCalldata;
 
