@@ -30,3 +30,28 @@ records verified reserve state and rejects both query and deposit-ID replays.
 The live CC3 deployment, proof receipt, resulting state, and replay rejection
 are recorded in
 [`../docs/deployments/creditcoin.json`](../docs/deployments/creditcoin.json).
+
+## Issuer core
+
+`IssuerFactory` creates a deterministic controller and isolated ERC-20 token
+for each issuer ID. The transaction sender becomes that issuer's administrator.
+The registry records the administrator, source chain key, vault, optional
+smart-account executor, reserve asset, controller, token, and decimals. These
+values are immutable inside the deployed controller; the factory offers no
+configuration-update path.
+
+`IssuerController` extends the proof gate and is the token's only minter. A
+successful proof updates verified-reserve accounting and mints the exact event
+amount to the event beneficiary in one transaction. If minting fails or
+issuance is paused, all proof-consumption and accounting changes roll back.
+
+The MVP requires the reserve asset and issuer token to use the same decimals.
+Decimal conversion is intentionally excluded until a rounding policy is
+specified and tested. Deploy the factory reproducibly with:
+
+```bash
+forge script script/DeployIssuerFactory.s.sol:DeployIssuerFactory \
+  --root contracts \
+  --rpc-url "$CREDITCOIN_RPC_URL" \
+  --broadcast
+```

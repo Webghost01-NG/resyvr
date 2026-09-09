@@ -12,7 +12,8 @@ via_ir = true
 evm_version = "shanghai"
 remappings = [
   "forge-std/=lib/forge-std/src/",
-  "@gluwa/asc-contracts/=../node_modules/@gluwa/asc-contracts/"
+  "@gluwa/asc-contracts/=../node_modules/@gluwa/asc-contracts/",
+  "@openzeppelin/contracts/=../node_modules/@openzeppelin/contracts/"
 ]
 
 [fmt]
