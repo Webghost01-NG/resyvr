@@ -11,6 +11,9 @@ It has no withdrawal or administrator path in the MVP.
 npm run contracts:check
 ```
 
+The semantic, fuzz, and stateful invariant coverage is mapped in
+[`../docs/security-invariants.md`](../docs/security-invariants.md).
+
 ## Deployment inputs
 
 - `RESYVR_RESERVE_ASSET`: the Sepolia reserve token contract;
