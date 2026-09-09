@@ -49,6 +49,7 @@ let networks;
 let pilot;
 let issuance;
 let sourceVaultDeployment;
+let portfolioRequest = 0;
 
 function byId(id) {
   const element = document.getElementById(id);
@@ -232,6 +233,25 @@ async function prepareWalletRequest(chainKey, effect) {
   await ensureChain(chainKey);
 }
 
+async function estimateBoundedGas(chainKey, transaction) {
+  const rpcUrl = networks[chainKey].rpcUrl;
+  const request = { from: flow.account, ...transaction };
+  const [estimateHex, latestBlock] = await Promise.all([
+    publicRpc(rpcUrl, "eth_estimateGas", [request]),
+    publicRpc(rpcUrl, "eth_getBlockByNumber", ["latest", false]),
+  ]);
+  const estimate = BigInt(estimateHex);
+  const blockLimit = BigInt(latestBlock?.gasLimit || "0x1c9c380");
+  const rpcLimit = chainKey === "source" ? 16_000_000n : blockLimit;
+  const safeLimit = (blockLimit < rpcLimit ? blockLimit : rpcLimit) * 9n / 10n;
+  const buffered = estimate * 3n + 100_000n;
+  if (estimate > safeLimit) {
+    throw new Error(`Estimated gas ${estimate.toLocaleString("en-US")} exceeds this network's safe transaction limit`);
+  }
+  const gas = buffered < safeLimit ? buffered : safeLimit;
+  return `0x${gas.toString(16)}`;
+}
+
 async function waitForReceipt(transactionHash, chainKey, timeoutMs = 300_000) {
   const startedAt = Date.now();
   const rpcUrl = networks[chainKey].rpcUrl;
@@ -265,13 +285,129 @@ async function waitForReceipt(transactionHash, chainKey, timeoutMs = 300_000) {
 async function sendWalletTransaction(chainKey, transaction, effect, onSubmitted = null) {
   if (!flow.account) throw new Error("Connect MetaMask first");
   await prepareWalletRequest(chainKey, effect);
+  const gas = await estimateBoundedGas(chainKey, transaction);
   const transactionHash = await window.ethereum.request({
     method: "eth_sendTransaction",
-    params: [{ from: flow.account, ...transaction }],
+    params: [{ from: flow.account, ...transaction, gas }],
   });
   if (onSubmitted) onSubmitted(transactionHash);
   const receipt = await waitForReceipt(transactionHash, chainKey);
   return { transactionHash, receipt };
+}
+
+function decodeAbiString(data) {
+  if (!/^0x[0-9a-f]+$/i.test(data || "") || data.length < 130) return "";
+  try {
+    const offset = Number(BigInt(`0x${data.slice(2, 66)}`));
+    const lengthOffset = 2 + offset * 2;
+    const length = Number(BigInt(`0x${data.slice(lengthOffset, lengthOffset + 64)}`));
+    const valueOffset = lengthOffset + 64;
+    const bytes = data.slice(valueOffset, valueOffset + length * 2).match(/.{2}/g) || [];
+    return new TextDecoder().decode(Uint8Array.from(bytes, (byte) => Number.parseInt(byte, 16)));
+  } catch {
+    return "";
+  }
+}
+
+function addressTopic(address) {
+  return `0x${address.toLowerCase().replace(/^0x/, "").padStart(64, "0")}`;
+}
+
+function renderIssuerPortfolio(assets) {
+  const section = byId("issuer-portfolio");
+  const list = byId("issuer-asset-list");
+  list.replaceChildren();
+  section.hidden = assets.length < 2;
+  if (assets.length < 2) return;
+
+  byId("issuer-portfolio-count").textContent = `${assets.length} assets created by this wallet`;
+  for (const asset of assets) {
+    const card = document.createElement("article");
+    card.className = "issuer-asset-card";
+
+    const titleRow = document.createElement("div");
+    titleRow.className = "issuer-asset-title";
+    const title = document.createElement("h4");
+    title.textContent = asset.name || "Issuer token";
+    const symbol = document.createElement("span");
+    symbol.textContent = asset.symbol || "TOKEN";
+    titleRow.append(title, symbol);
+
+    const tokenLink = document.createElement("a");
+    tokenLink.className = "mono issuer-token-link";
+    tokenLink.href = `${networks.destination.explorerUrl}/token/${asset.token}`;
+    tokenLink.target = "_blank";
+    tokenLink.rel = "noreferrer";
+    tokenLink.textContent = asset.token;
+
+    const detail = document.createElement("p");
+    detail.textContent = `CC3 Testnet · ${asset.decimals} decimals · created at block ${asset.blockNumber.toLocaleString("en-US")}`;
+
+    const actions = document.createElement("div");
+    actions.className = "issuer-asset-actions";
+    const controllerLink = document.createElement("a");
+    controllerLink.href = `${networks.destination.explorerUrl}/address/${asset.controller}`;
+    controllerLink.target = "_blank";
+    controllerLink.rel = "noreferrer";
+    controllerLink.textContent = "View controller ↗";
+    const copyButton = document.createElement("button");
+    copyButton.type = "button";
+    copyButton.textContent = "Copy token address";
+    copyButton.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(asset.token);
+        copyButton.textContent = "Address copied";
+        window.setTimeout(() => { copyButton.textContent = "Copy token address"; }, 1_800);
+      } catch {
+        copyButton.textContent = "Copy failed";
+      }
+    });
+    actions.append(controllerLink, copyButton);
+    card.append(titleRow, tokenLink, detail, actions);
+    list.append(card);
+  }
+}
+
+async function refreshIssuerPortfolio() {
+  const requestId = ++portfolioRequest;
+  if (!flow.account || !issuance?.factory) {
+    renderIssuerPortfolio([]);
+    return;
+  }
+  try {
+    const fromBlock = issuance.factoryDeployment?.blockNumber || 0;
+    const logs = await publicRpc(networks.destination.rpcUrl, "eth_getLogs", [{
+      address: issuance.factory,
+      fromBlock: `0x${Number(fromBlock).toString(16)}`,
+      toBlock: "latest",
+      topics: [ISSUER_CREATED_TOPIC, null, addressTopic(flow.account)],
+    }]);
+    if (requestId !== portfolioRequest || logs.length < 2) {
+      if (requestId === portfolioRequest) renderIssuerPortfolio([]);
+      return;
+    }
+
+    const assets = await Promise.all(logs.slice(-20).reverse().map(async (log) => {
+      const words = log.data.slice(2).match(/.{64}/g) || [];
+      const token = wordAddress(words[0]);
+      const [nameResult, symbolResult] = await Promise.all([
+        contractCall(networks.destination.rpcUrl, token, "0x06fdde03").catch(() => "0x"),
+        contractCall(networks.destination.rpcUrl, token, "0x95d89b41").catch(() => "0x"),
+      ]);
+      return {
+        issuerId: log.topics[1],
+        controller: wordAddress(log.topics[3]),
+        token,
+        name: decodeAbiString(nameResult),
+        symbol: decodeAbiString(symbolResult),
+        decimals: Number(BigInt(`0x${words[5] || "0"}`)),
+        blockNumber: Number(BigInt(log.blockNumber)),
+      };
+    }));
+    if (requestId === portfolioRequest) renderIssuerPortfolio(assets.filter((asset) => asset.token && asset.controller));
+  } catch {
+    if (requestId === portfolioRequest) renderIssuerPortfolio([]);
+  }
 }
 
 async function recoverSourceVaultDeployment() {
@@ -509,6 +645,7 @@ async function connectWallet() {
     flow.account = accounts[0] || null;
     flow.chainId = Number.parseInt(await window.ethereum.request({ method: "eth_chainId" }), 16);
     render();
+    void refreshIssuerPortfolio();
   } catch (error) {
     byId("signature-effect").textContent = friendlyError(error);
   }
@@ -694,6 +831,7 @@ async function createIssuer() {
     await resolveIssuerAddresses();
     setActionState("create-state", "Issuer created.", "success", transactionHash, networks.destination.explorerUrl);
     saveFlow();
+    void refreshIssuerPortfolio();
   } catch (error) {
     setActionState("create-state", friendlyError(error), "error");
   } finally {
@@ -955,9 +1093,11 @@ async function initialize() {
     flow.account = accounts[0] || null;
     flow.chainId = Number.parseInt(await window.ethereum.request({ method: "eth_chainId" }), 16);
     void recoverSourceVaultDeployment();
+    void refreshIssuerPortfolio();
     window.ethereum.on?.("accountsChanged", (nextAccounts) => {
       flow.account = nextAccounts[0] || null;
       void recoverSourceVaultDeployment();
+      void refreshIssuerPortfolio();
       render();
     });
     window.ethereum.on?.("chainChanged", (nextChainId) => {

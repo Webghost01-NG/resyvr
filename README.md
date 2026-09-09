@@ -91,6 +91,11 @@ metrics remain recorded evidence for that pilot. See the [wallet-flow guide](doc
 for confirmation states and recovery guidance. The MVP vault has no withdrawal
 path; use test assets only. Redemption remains deferred.
 
+Wallet transactions use a buffered public-RPC gas estimate so MetaMask does not
+fall back to a gas limit above the network cap. When a connected administrator
+has created at least two factory issuers, the launchpad shows an on-chain asset
+portfolio with each token address, controller, network, decimals, and copy link.
+
 ## Status
 
 The Sepolia reserve vault and the complete Creditcoin issuer system are live on

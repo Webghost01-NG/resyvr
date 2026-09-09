@@ -27,6 +27,8 @@ for (const path of ["../config/networks.json", "../config/pilot.json", "../docs/
 if (!wallet.includes('fetchJson("../config/issuance.json")')) throw new Error("Wallet flow does not load issuance config");
 if (!wallet.includes("networks.source.transactionExecutor")) throw new Error("Wallet flow does not configure the supported source executor");
 if (!wallet.includes("SOURCE_EXECUTOR_SELECTOR")) throw new Error("Wallet flow does not verify the controller source executor");
+if (!wallet.includes('publicRpc(rpcUrl, "eth_estimateGas"')) throw new Error("Wallet transactions do not use bounded public-RPC gas estimates");
+if (!wallet.includes('publicRpc(networks.destination.rpcUrl, "eth_getLogs"')) throw new Error("Issuer portfolio does not read factory logs");
 if (!/^0x[0-9a-f]{40}$/i.test(networks.source.transactionExecutor || "")) {
   throw new Error("Source transaction executor is not a valid address");
 }

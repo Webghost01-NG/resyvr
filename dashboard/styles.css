@@ -1433,6 +1433,112 @@ dd {
   box-shadow: 0 0 0 3px rgba(101, 84, 232, 0.08);
 }
 
+.issuer-portfolio {
+  margin-top: 76px;
+  padding-top: 34px;
+  border-top: 1px solid rgba(17, 18, 26, 0.17);
+}
+
+.issuer-portfolio[hidden] {
+  display: none;
+}
+
+.portfolio-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.portfolio-heading h3 {
+  margin-top: 8px;
+  font: 600 clamp(1.8rem, 3vw, 2.8rem) "Space Grotesk", sans-serif;
+  letter-spacing: -0.05em;
+}
+
+.portfolio-heading > p {
+  color: #777987;
+  font: 0.6rem "IBM Plex Mono", monospace;
+  text-transform: uppercase;
+}
+
+.issuer-asset-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.issuer-asset-card {
+  min-width: 0;
+  padding: 22px;
+  border: 1px solid rgba(17, 18, 26, 0.14);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.42);
+}
+
+.issuer-asset-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.issuer-asset-title h4 {
+  margin: 0;
+  overflow: hidden;
+  font: 600 1.2rem "Space Grotesk", sans-serif;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.issuer-asset-title span {
+  padding: 6px 9px;
+  border-radius: 999px;
+  background: rgba(101, 84, 232, 0.1);
+  color: #6554e8;
+  font: 600 0.58rem "IBM Plex Mono", monospace;
+}
+
+.issuer-token-link {
+  display: block;
+  margin-top: 13px;
+  overflow: hidden;
+  color: #087d72;
+  font-size: 0.62rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.issuer-asset-card > p {
+  margin: 8px 0 0;
+  color: #777987;
+  font-size: 0.62rem;
+}
+
+.issuer-asset-actions {
+  display: flex;
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.issuer-asset-actions a,
+.issuer-asset-actions button {
+  padding: 0;
+  border: 0;
+  border-bottom: 1px solid rgba(17, 18, 26, 0.22);
+  background: transparent;
+  color: #4e5060;
+  cursor: pointer;
+  font: 600 0.62rem "Inter", sans-serif;
+}
+
+.issuer-asset-actions a:hover,
+.issuer-asset-actions button:hover {
+  border-color: #6554e8;
+  color: #6554e8;
+}
+
 .configuration-grid {
   display: grid;
   grid-template-columns: minmax(0, 0.75fr) minmax(460px, 1.25fr);
@@ -1711,7 +1817,8 @@ body[data-state="waiting"] .state-icon {
   }
 
   .launch-grid,
-  .asset-builder {
+  .asset-builder,
+  .issuer-asset-list {
     grid-template-columns: 1fr;
   }
 
@@ -1735,6 +1842,11 @@ body[data-state="waiting"] .state-icon {
 
   .site-header {
     padding-inline: 14px;
+  }
+
+  .portfolio-heading {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .token-result {
