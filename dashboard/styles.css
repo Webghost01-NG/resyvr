@@ -1433,6 +1433,22 @@ dd {
   box-shadow: 0 0 0 3px rgba(101, 84, 232, 0.08);
 }
 
+.beneficiary-input {
+  width: min(360px, 100%);
+  padding: 12px;
+  border: 1px solid rgba(17, 18, 26, 0.16);
+  border-radius: 13px;
+  outline: 0;
+  background: rgba(255, 255, 255, 0.5);
+  color: #171824;
+  font-size: 0.62rem;
+}
+
+.beneficiary-input:focus {
+  border-color: #6554e8;
+  box-shadow: 0 0 0 3px rgba(101, 84, 232, 0.08);
+}
+
 .issuer-portfolio {
   margin-top: 76px;
   padding-top: 34px;
@@ -1475,6 +1491,11 @@ dd {
   border: 1px solid rgba(17, 18, 26, 0.14);
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.42);
+}
+
+.issuer-asset-card.selected {
+  border-color: rgba(101, 84, 232, 0.62);
+  box-shadow: 0 14px 40px rgba(55, 45, 133, 0.12);
 }
 
 .issuer-asset-title {
@@ -1537,6 +1558,12 @@ dd {
 .issuer-asset-actions button:hover {
   border-color: #6554e8;
   color: #6554e8;
+}
+
+.issuer-asset-actions button:disabled {
+  border-color: transparent;
+  color: #8c8e9a;
+  cursor: default;
 }
 
 .configuration-grid {

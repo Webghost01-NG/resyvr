@@ -39,11 +39,14 @@ symbol, wallet account, and network before confirming deployment.
    can fund and activate it. Activation prevents bond withdrawal while issuance
    remains active; deactivation blocks new minting. CTC is shown in native
    units, without a dollar-insurance claim.
-4. **Deposit reserve — Sepolia.** Enter the test-USDC amount. Approve that
-   amount for your vault, then confirm a separate **Deposit reserve**
-   transaction. Approval alone moves no reserve and creates no mintable
-   deposit. The deposit uses a fresh deposit ID and the connected wallet as
-   beneficiary. The successful vault event records issuer, depositor,
+4. **Deposit reserve — Sepolia.** Enter the test-USDC amount and the Creditcoin
+   recipient address. Leave the recipient empty to use the connected wallet.
+   Approve that amount for your vault, then confirm a separate **Deposit
+   reserve** transaction. Approval alone moves no reserve and creates no
+   mintable deposit. The deposit uses a fresh deposit ID and records the chosen
+   recipient as beneficiary. Because Sepolia and Creditcoin use the same EVM
+   address format, a recipient can use the same `0x` wallet on both networks.
+   The successful vault event records issuer, depositor,
    beneficiary, amount, and deposit identity. A direct token transfer to the
    vault does not create this recognized deposit event.
 5. **Generate proof — no wallet signature.** Select **Generate proof**. The
@@ -93,7 +96,10 @@ different wallet is connected, recovery asks for the submitting account.
 After one wallet has created at least two issuers through the factory, **Your
 issued assets** appears below the launch steps. It is rebuilt from indexed
 `IssuerCreated` logs and live token metadata; wallets with zero or one issuer do
-not see an empty portfolio section.
+not see an empty portfolio section. Select **Manage issuer** to restore that
+asset's immutable addresses, current bond state, and latest unconsumed Sepolia
+deposit. The token contract link is the address holders import into MetaMask on
+Creditcoin CC3. Importing only displays a balance; it does not issue tokens.
 
 The pilot's recorded 5-USDC deposit belongs to its fixed issuer and source
 vault. It cannot back a newly created token system, and its consumed proof

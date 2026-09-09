@@ -23,6 +23,9 @@ Source-vault creation bytecode comes from `config/source-vault-deployment.json`.
 The public pilot metrics do not represent a newly created issuer's balances.
 The launchpad discovers factory issuers by the connected administrator topic;
 the portfolio stays hidden until at least two matching on-chain issuers exist.
+Each portfolio card can reopen its issuer workflow and exposes the token address
+holders import on Creditcoin CC3. The reserve form can mint to the connected
+wallet or a separately entered recipient address after proof verification.
 See [`../docs/wallet-flow.md`](../docs/wallet-flow.md) for the six steps,
 transaction confirmations, and failure states.
 
