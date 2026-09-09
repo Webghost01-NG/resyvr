@@ -1,0 +1,25 @@
+{
+  "source": {
+    "name": "Ethereum Sepolia",
+    "chainId": 11155111,
+    "attestcoinChainKey": 1,
+    "rpcUrl": "https://ethereum-sepolia-rpc.publicnode.com",
+    "explorerUrl": "https://sepolia.etherscan.io",
+    "reserveAsset": {
+      "name": "Circle test USDC",
+      "symbol": "USDC",
+      "decimals": 6,
+      "address": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238"
+    }
+  },
+  "destination": {
+    "name": "Creditcoin CC3 Testnet",
+    "chainId": 102031,
+    "rpcUrl": "https://rpc.cc3-testnet.creditcoin.network",
+    "explorerUrl": "https://creditcoin-testnet.blockscout.com",
+    "proofBuilderUrl": "https://prover.cc3-testnet.creditcoin.network",
+    "verifierPrecompile": "0x0000000000000000000000000000000000000FD2",
+    "chainInfoPrecompile": "0x0000000000000000000000000000000000000FD3",
+    "evmV1Decoder": "0x04B9ae8562D8Cc5bbbBbBB759080dDC30B56D18B"
+  }
+}

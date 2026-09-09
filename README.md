@@ -40,8 +40,9 @@ historical deposit proof alone proves current solvency.
 - [Architecture](docs/architecture.md)
 - [Competitive landscape](docs/competitive-landscape.md)
 - [MVP and delivery gates](docs/mvp.md)
+- [Attestcoin protocol preflight](docs/protocol-preflight.md)
+- [Attestcoin protocol preflight](docs/protocol-preflight.md)
 
 ## Status
 
 Architecture phase. No Resyvr contract or deployment is claimed yet.
-
