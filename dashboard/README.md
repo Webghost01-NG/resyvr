@@ -4,17 +4,17 @@ Run `npm run dashboard` from the repository root and open
 `http://127.0.0.1:8000/dashboard/`.
 
 The dashboard reads network endpoints from `config/networks.json`, pilot
-transaction identities from `config/pilot.json`, and tracked contract evidence
-from `docs/deployments/creditcoin.json`. It then verifies the controller's
-current reserve and immutable source configuration over public CC3 JSON-RPC.
+transaction identities from `config/pilot.json`, base proof evidence from
+`docs/deployments/creditcoin.json`, and the active issuer deployment from
+`config/issuance.json`. It then verifies the issuer controller's current
+reserve, token supply, CTC bond, and immutable source configuration over public
+CC3 JSON-RPC.
 
-When the deployment evidence names an `IssuerController`, the same page also
-discovers and reads its token supply and native CTC bond vault. Until then those
-fields are labeled pending and coverage is unavailable. A failed or stale RPC
+The page discovers the active issuer token and native CTC bond vault from the
+controller rather than trusting copied display values. A failed or stale RPC
 read remains visible as a status rather than silently falling back to a live
 claim.
 
-The issuer launchpad reads `config/issuance.json`. Until a factory deployment is
-recorded there, transaction buttons remain disabled while the public evidence
-dashboard continues to work. See [`../docs/wallet-flow.md`](../docs/wallet-flow.md)
-for the complete signature and failure-state sequence.
+The issuer launchpad also reads `config/issuance.json` and resumes from the
+recorded deployment. See [`../docs/wallet-flow.md`](../docs/wallet-flow.md) for
+the complete signature and failure-state sequence.

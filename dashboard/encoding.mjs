@@ -46,6 +46,12 @@ export function encodeApprove(spender, amount) {
   return `0x095ea7b3${encodeAddress(spender)}${encodeUint(amount)}`;
 }
 
+export function encodeFactoryDeployment(bytecode, minimumBondWei) {
+  const creationBytecode = stripHexPrefix(bytecode);
+  if (creationBytecode.length === 0) throw new Error("Factory bytecode is unavailable");
+  return `0x${creationBytecode}${encodeUint(minimumBondWei)}`;
+}
+
 export function encodeDeposit(depositId, beneficiary, amount) {
   return `0xd954863c${encodeBytes32(depositId)}${encodeAddress(beneficiary)}${encodeUint(amount)}`;
 }

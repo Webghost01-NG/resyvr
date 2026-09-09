@@ -1,13 +1,21 @@
 import assert from "node:assert/strict";
-import { Interface } from "ethers";
+import { AbiCoder, Interface } from "ethers";
 
 import {
   encodeApprove,
   encodeCreateIssuer,
   encodeDeposit,
   encodeExecuteDeposit,
+  encodeFactoryDeployment,
   parseUnits,
 } from "../dashboard/encoding.mjs";
+
+const sampleBytecode = "0x60006000f3";
+assert.equal(
+  encodeFactoryDeployment(sampleBytecode, 1_000_000_000_000_000_000n),
+  `${sampleBytecode}${AbiCoder.defaultAbiCoder().encode(["uint256"], [1_000_000_000_000_000_000n]).slice(2)}`,
+  "factory initcode differs from ethers constructor encoding",
+);
 
 const issuerParameters = {
   issuerId: `0x${"11".repeat(32)}`,

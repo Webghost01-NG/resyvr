@@ -67,3 +67,10 @@ explicitly deposit CTC and activate issuance. An active bond cannot be
 withdrawn; the administrator must first deactivate issuance, which immediately
 blocks new proof-backed minting. The MVP has no slashing path and makes no USD
 claim about the bond's value.
+
+The browser launchpad deploys the exact `IssuerFactory` creation bytecode stored
+in `config/factory-deployment.json`. Regenerate that file from the Foundry
+artifact with `npm run deployment:prepare`; its bytecode hash makes the wallet
+payload reviewable. After the pilot transactions confirm,
+`npm run deployment:capture` discovers them from the public explorer and writes
+their addresses, blocks, gas, and links to `config/issuance.json`.

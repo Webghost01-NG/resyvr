@@ -87,7 +87,10 @@
               <h3>Create isolated issuer</h3>
               <p>Registers the pilot source boundary and deploys one controller, token, and bond vault.</p>
               <p class="action-state" id="create-state">Waiting for factory deployment evidence.</p>
-              <button class="action-button" id="create-issuer" type="button" disabled>Create issuer</button>
+              <div class="button-row">
+                <button class="action-button" id="deploy-factory" type="button" disabled>Deploy factory</button>
+                <button class="action-button secondary" id="create-issuer" type="button" disabled>Create issuer</button>
+              </div>
             </div>
           </li>
           <li class="launch-card">
@@ -115,6 +118,7 @@
               <div class="button-row">
                 <button class="action-button" id="approve-reserve" type="button" disabled>Approve USDC</button>
                 <button class="action-button secondary" id="deposit-reserve" type="button" disabled>Deposit reserve</button>
+                <button class="action-button secondary" id="use-pilot-deposit" type="button" disabled>Use recorded 5 USDC</button>
               </div>
             </div>
           </li>
@@ -147,7 +151,7 @@
             <p class="kicker">Reserve coverage</p>
             <h2 id="coverage-title">What the chain can prove now</h2>
           </div>
-          <p class="source-note">Live values use read-only JSON-RPC. Missing issuer-core deployments stay visibly unavailable.</p>
+          <p class="source-note">Live values use read-only JSON-RPC against the deployed pilot issuer contracts.</p>
         </div>
 
         <div class="metrics">
@@ -249,8 +253,8 @@
             <p class="label">Honest boundary</p>
             <h3>Issuance is live evidence. Redemption is deferred.</h3>
             <p>
-              This pilot proves a one-way reserve deposit and replay-safe Creditcoin accounting. The isolated token,
-              CTC bond, and two-way redemption flow are shown only after their deployment evidence exists.
+              This pilot proves one-way reserve deposit, replay-safe Creditcoin accounting, exact rvUSD minting,
+              and an active CTC issuer bond. Two-way redemption remains deferred.
             </p>
             <a href="../docs/security-invariants.md">Read the tested invariants →</a>
           </aside>
@@ -263,7 +267,7 @@
       <p>Testnet evidence only · No claim of production solvency or dollar insurance</p>
     </footer>
 
-    <script type="module" src="./app.js"></script>
-    <script type="module" src="./wallet.js"></script>
+    <script type="module" src="./app.js?v=10"></script>
+    <script type="module" src="./wallet.js?v=12"></script>
   </body>
 </html>

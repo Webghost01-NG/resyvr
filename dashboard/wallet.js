@@ -3,11 +3,12 @@ import {
   encodeCreateIssuer,
   encodeDeposit,
   encodeExecuteDeposit,
+  encodeFactoryDeployment,
   parseUnits,
-} from "./encoding.mjs";
+} from "./encoding.mjs?v=10";
 
 const ISSUER_CREATED_TOPIC = "0x75118ee2db244652d7ac3bbe9a9f199941ece831c61580f5a72e4b7fa9ef245a";
-const RESERVE_DEPOSITED_TOPIC = "0x9ade6207680ee84077f86cc08de4f401b88731138ea5b583f09bd7266113453";
+const RESERVE_DEPOSITED_TOPIC = "0x9ade6207680ee84077f86cc08de4f401b88731138ea5b583f09bd7266113453d";
 const ISSUER_LOOKUP_SELECTOR = "0xc53a4413";
 const TOKEN_SELECTOR = "0xfc0c546a";
 const BOND_VAULT_SELECTOR = "0x990826b3";
@@ -18,6 +19,7 @@ const STORAGE_KEY = "resyvr-issuer-flow-v1";
 const flow = {
   account: null,
   factory: null,
+  factoryDeploymentTransaction: null,
   controller: null,
   token: null,
   bondVault: null,
@@ -38,6 +40,7 @@ const flow = {
 let networks;
 let pilot;
 let issuance;
+let factoryDeployment;
 
 function byId(id) {
   const element = document.getElementById(id);
@@ -98,6 +101,15 @@ function hasFinalActionState(id) {
 function friendlyError(error) {
   if (error?.code === 4001) return "Wallet request rejected. No successful action was recorded.";
   if (error?.code === -32002) return "MetaMask already has a request open.";
+  if (typeof error?.message === "string" && error.message) return error.message;
+  if (typeof error?.data?.message === "string" && error.data.message) return error.data.message;
+  if (typeof error === "object" && error !== null) {
+    try {
+      return JSON.stringify(error);
+    } catch {
+      return "Wallet request failed with an unreadable provider error.";
+    }
+  }
   return error instanceof Error ? error.message : String(error);
 }
 
@@ -191,7 +203,7 @@ async function sendWalletTransaction(chainKey, transaction, effect) {
 }
 
 async function resolveIssuerAddresses() {
-  flow.factory = issuance.factory;
+  flow.factory = issuance.factory || flow.factory;
   flow.controller = issuance.issuerController || flow.controller;
   flow.token = issuance.token || flow.token;
   flow.bondVault = issuance.bondVault || flow.bondVault;
@@ -232,11 +244,13 @@ function render() {
   byId("wallet-account").textContent = connected ? shortHex(flow.account, 12, 8) : "Not connected";
   byId("connect-wallet").textContent = connected ? "Wallet connected" : "Connect MetaMask";
 
+  byId("deploy-factory").disabled = !connected || Boolean(flow.factory);
   byId("create-issuer").disabled = !connected || !flow.factory || Boolean(flow.controller);
   byId("deposit-bond").disabled = !connected || !flow.bondVault || flow.bondActive;
   byId("activate-bond").disabled = !connected || !flow.bondVault || flow.bondActive;
   byId("approve-reserve").disabled = !connected || !flow.controller || !flow.bondActive;
   byId("deposit-reserve").disabled = !connected || !flow.controller || !flow.bondActive;
+  byId("use-pilot-deposit").disabled = !connected || !flow.controller || !flow.bondActive || Boolean(flow.proofTransaction);
   byId("generate-proof").disabled = !flow.depositTransaction || !flow.depositBlock;
   byId("submit-proof").disabled = !connected || !flow.controller || !flow.proofCalldata;
 
@@ -246,6 +260,8 @@ function render() {
     }
   } else if (flow.factory && !hasFinalActionState("create-state")) {
     setActionState("create-state", `Factory ready: ${shortHex(flow.factory)}. Wallet signature required.`, "waiting");
+  } else if (connected && !hasFinalActionState("create-state")) {
+    setActionState("create-state", "Deploy the audited factory bytecode on Creditcoin CC3.", "waiting");
   }
   if (flow.bondVault && !hasFinalActionState("bond-state")) {
     const message = flow.bondActive
@@ -290,6 +306,28 @@ async function connectWallet() {
     render();
   } catch (error) {
     byId("signature-effect").textContent = friendlyError(error);
+  }
+}
+
+async function deployFactory() {
+  const button = byId("deploy-factory");
+  button.disabled = true;
+  try {
+    setActionState("create-state", "Waiting for the CC3 factory-deployment signature…");
+    const { transactionHash, receipt } = await sendWalletTransaction(
+      "destination",
+      { data: encodeFactoryDeployment(factoryDeployment.creationBytecode, issuance.minimumBondWei) },
+      `Deploy the Resyvr issuer factory with an immutable ${formatNative(issuance.minimumBondWei)} CTC minimum bond.`,
+    );
+    if (!receipt.contractAddress) throw new Error("Successful deployment receipt did not contain a contract address");
+    flow.factory = receipt.contractAddress;
+    flow.factoryDeploymentTransaction = transactionHash;
+    saveFlow();
+    setActionState("create-state", `Factory deployed: ${shortHex(flow.factory)}. Create the issuer next.`, "success", transactionHash, networks.destination.explorerUrl);
+  } catch (error) {
+    setActionState("create-state", friendlyError(error), "error");
+  } finally {
+    render();
   }
 }
 
@@ -423,6 +461,29 @@ async function depositReserve() {
   }
 }
 
+function selectPilotDeposit() {
+  flow.depositTransaction = pilot.depositTransactionHash;
+  flow.depositBlock = pilot.depositBlockNumber;
+  flow.depositId = pilot.depositId;
+  flow.depositAmount = pilot.amount;
+  flow.depositAccount = pilot.beneficiary;
+  flow.proofCalldata = null;
+  flow.proofTransaction = null;
+  saveFlow();
+}
+
+function usePilotDeposit() {
+  selectPilotDeposit();
+  setActionState(
+    "deposit-state",
+    `Recorded 5 USDC deposit selected from Sepolia block ${flow.depositBlock}.`,
+    "success",
+    flow.depositTransaction,
+    networks.source.explorerUrl,
+  );
+  render();
+}
+
 async function validateSourceDeposit() {
   const [receipt, transaction] = await Promise.all([
     publicRpc(networks.source.rpcUrl, "eth_getTransactionReceipt", [flow.depositTransaction]),
@@ -509,23 +570,31 @@ function formatNative(value) {
 
 function bindActions() {
   byId("connect-wallet").addEventListener("click", connectWallet);
+  byId("deploy-factory").addEventListener("click", deployFactory);
   byId("create-issuer").addEventListener("click", createIssuer);
   byId("deposit-bond").addEventListener("click", depositBond);
   byId("activate-bond").addEventListener("click", activateBond);
   byId("approve-reserve").addEventListener("click", approveReserve);
   byId("deposit-reserve").addEventListener("click", depositReserve);
+  byId("use-pilot-deposit").addEventListener("click", usePilotDeposit);
   byId("generate-proof").addEventListener("click", generateProof);
   byId("submit-proof").addEventListener("click", submitProof);
 }
 
 async function initialize() {
+  const search = new URLSearchParams(window.location.search);
+  if (search.get("reset") === "1") {
+    localStorage.removeItem(STORAGE_KEY);
+  }
   loadSavedFlow();
-  [networks, pilot, issuance] = await Promise.all([
+  [networks, pilot, issuance, factoryDeployment] = await Promise.all([
     fetchJson("../config/networks.json"),
     fetchJson("../config/pilot.json"),
     fetchJson("../config/issuance.json"),
+    fetchJson("../config/factory-deployment.json"),
   ]);
   await resolveIssuerAddresses();
+  if (search.get("pilot") === "1") selectPilotDeposit();
   bindActions();
 
   if (window.ethereum) {

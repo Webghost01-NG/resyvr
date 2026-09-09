@@ -16,7 +16,7 @@ const missingIds = [...referencedIds].filter((id) => !definedIds.has(id));
 if (duplicateIds.length > 0) throw new Error(`Duplicate dashboard IDs: ${duplicateIds.join(", ")}`);
 if (missingIds.length > 0) throw new Error(`Missing dashboard IDs: ${missingIds.join(", ")}`);
 
-for (const path of ["../config/networks.json", "../config/pilot.json", "../docs/deployments/creditcoin.json"]) {
+for (const path of ["../config/networks.json", "../config/pilot.json", "../docs/deployments/creditcoin.json", "../config/issuance.json"]) {
   if (!`${app}\n${wallet}`.includes(`fetchJson("${path}")`)) throw new Error(`Dashboard does not load ${path}`);
 }
 

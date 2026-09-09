@@ -8,6 +8,13 @@
   "deploymentTransactionHash": "0x22a9e2278b1fcb6270b5b700840ba80c868c4890177620fa9cd919737b3b4c36",
   "deploymentBlockNumber": 5457456,
   "deploymentGasUsed": "1426525",
+  "sourceVerification": {
+    "status": "verified",
+    "verifiedAt": "2026-09-09",
+    "explorer": "Blockscout",
+    "compiler": "v0.8.30+commit.73712a01",
+    "optimizer": true
+  },
   "configuration": {
     "sourceChainKey": 1,
     "sourceVault": "0x99d9d85EAca66c85526cb8DA2CbF9948FD4B34f1",

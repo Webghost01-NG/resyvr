@@ -1,10 +1,54 @@
 {
   "schemaVersion": 1,
-  "factory": null,
-  "issuerController": null,
-  "token": null,
-  "bondVault": null,
+  "factory": "0xd951A7094814DC2Ab9BE5F5E263A0081C89f323F",
+  "issuerController": "0x81a5E9379eaa4a2dAed7108120e8059d6CeF2948",
+  "token": "0xbCb8eE1A76842d4Fea3Eca2dD65768efF4645Afa",
+  "bondVault": "0x164e57032b0224C435d7ADD047D57463efcBB55f",
   "minimumBondWei": "1000000000000000000",
   "tokenName": "Resyvr USD Pilot",
-  "tokenSymbol": "rvUSD"
+  "tokenSymbol": "rvUSD",
+  "administrator": "0x6CeD8D6Bad8Dfd2e60BCEA116fE74548f959f1F2",
+  "factoryDeployment": {
+    "transactionHash": "0xadbe55b9b2848cae32e5a70bef5c0fac65b75a9d8dbb6f7cf86bd321454e944b",
+    "blockNumber": 5458124,
+    "gasUsed": "3371532",
+    "explorer": "https://creditcoin-testnet.blockscout.com/tx/0xadbe55b9b2848cae32e5a70bef5c0fac65b75a9d8dbb6f7cf86bd321454e944b"
+  },
+  "issuerCreation": {
+    "transactionHash": "0xf59fe34b41b227da032c404f23d5cc0ddd113e03073c07b01e47b430096c5d7e",
+    "blockNumber": 5458126,
+    "gasUsed": "2460068",
+    "explorer": "https://creditcoin-testnet.blockscout.com/tx/0xf59fe34b41b227da032c404f23d5cc0ddd113e03073c07b01e47b430096c5d7e"
+  },
+  "bondDeposit": {
+    "transactionHash": "0xaafd5cc50fc594074da1a6ef0e9ef085f0b4b6b73f302fe9ce648510c49a3c5a",
+    "blockNumber": 5458129,
+    "gasUsed": "26446",
+    "explorer": "https://creditcoin-testnet.blockscout.com/tx/0xaafd5cc50fc594074da1a6ef0e9ef085f0b4b6b73f302fe9ce648510c49a3c5a"
+  },
+  "bondActivation": {
+    "transactionHash": "0x44d15f385092690aae23c46a75859ddfb316cbf61d52b693220f89e32f817794",
+    "blockNumber": 5458131,
+    "gasUsed": "44737",
+    "explorer": "https://creditcoin-testnet.blockscout.com/tx/0x44d15f385092690aae23c46a75859ddfb316cbf61d52b693220f89e32f817794"
+  },
+  "proofSubmission": {
+    "transactionHash": "0xe5c1d4c22e4ea74ff241f6192aea2c786c55f9faac6f2678bc79c6e28c814ddb",
+    "blockNumber": 5458200,
+    "gasUsed": "336349",
+    "explorer": "https://creditcoin-testnet.blockscout.com/tx/0xe5c1d4c22e4ea74ff241f6192aea2c786c55f9faac6f2678bc79c6e28c814ddb",
+    "queryId": "0x6f6b2a76f4bf4ad4d67df82b8e8fd0a115a9dd2230edafd28b5c2e2976c196f1"
+  },
+  "sourceVerification": {
+    "status": "verified",
+    "verifiedAt": "2026-09-09",
+    "explorer": "Blockscout",
+    "compiler": "v0.8.30+commit.73712a01",
+    "contracts": [
+      "IssuerFactory",
+      "IssuerController",
+      "IssuerToken",
+      "CTCBondVault"
+    ]
+  }
 }
