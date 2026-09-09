@@ -87,14 +87,12 @@ redemption escrow are deferred until the issuance path passes the day-one gate.
 
 ### CTCBondVault — Creditcoin
 
-Every issuer deposits native CTC before activation. The MVP bond is a safety and
-accountability mechanism; it is not represented as complete dollar insurance.
-Only explicit, contract-defined faults can slash it, such as a proven source
-payout that does not match a registered redemption request.
-
-The first MVP may display the bond without enabling slashing if a sound,
-testable fault proof is not ready. A cosmetic or administrator-decided slashing
-button is not acceptable.
+Every issuer deposits native CTC before activation. The factory sets one
+immutable minimum for every issuer, and an active bond cannot be withdrawn.
+An issuer can deactivate issuance and then withdraw through an explicit state
+transition. The MVP bond is a visible commitment and accountability mechanism;
+it is not dollar insurance. There is no slashing path until an objective,
+on-chain fault proof is specified and tested.
 
 ## Issuance sequence
 

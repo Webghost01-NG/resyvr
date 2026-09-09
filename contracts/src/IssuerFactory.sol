@@ -11,6 +11,8 @@ contract IssuerFactory {
     error InvalidIssuerConfiguration();
     error OnlyIssuerAdministrator();
 
+    uint256 public immutable minimumIssuerBond;
+
     struct IssuerParameters {
         bytes32 issuerId;
         uint64 sourceChainKey;
@@ -30,10 +32,17 @@ contract IssuerFactory {
         address reserveAsset;
         address controller;
         address token;
+        address bondVault;
         uint8 decimals;
+        uint256 minimumBond;
     }
 
     mapping(bytes32 issuerId => IssuerRecord record) public issuers;
+
+    constructor(uint256 minimumIssuerBond_) {
+        if (minimumIssuerBond_ == 0) revert InvalidIssuerConfiguration();
+        minimumIssuerBond = minimumIssuerBond_;
+    }
 
     event IssuerCreated(
         bytes32 indexed issuerId,
@@ -44,7 +53,9 @@ contract IssuerFactory {
         address sourceVault,
         address sourceExecutor,
         address reserveAsset,
-        uint8 decimals
+        uint8 decimals,
+        uint256 minimumBond,
+        address bondVault
     );
 
     function createIssuer(IssuerParameters calldata parameters)
@@ -66,7 +77,8 @@ contract IssuerFactory {
             msg.sender,
             parameters.tokenName,
             parameters.tokenSymbol,
-            parameters.decimals
+            parameters.decimals,
+            minimumIssuerBond
         );
         controllerAddress = address(controller);
         tokenAddress = address(controller.token());
@@ -79,7 +91,9 @@ contract IssuerFactory {
             reserveAsset: parameters.reserveAsset,
             controller: controllerAddress,
             token: tokenAddress,
-            decimals: parameters.decimals
+            bondVault: address(controller.bondVault()),
+            decimals: parameters.decimals,
+            minimumBond: minimumIssuerBond
         });
 
         emit IssuerCreated(
@@ -91,7 +105,9 @@ contract IssuerFactory {
             parameters.sourceVault,
             parameters.sourceExecutor,
             parameters.reserveAsset,
-            parameters.decimals
+            parameters.decimals,
+            minimumIssuerBond,
+            address(controller.bondVault())
         );
     }
 
@@ -112,7 +128,8 @@ contract IssuerFactory {
                 administrator,
                 parameters.tokenName,
                 parameters.tokenSymbol,
-                parameters.decimals
+                parameters.decimals,
+                minimumIssuerBond
             )
         );
         return Create2.computeAddress(_salt(parameters.issuerId, administrator), keccak256(creationCode));
