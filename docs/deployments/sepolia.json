@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "network": "Ethereum Sepolia",
+  "chainId": 11155111,
+  "deployedAt": "2026-09-09T10:24:48.000Z",
+  "deployer": "0x6CeD8D6Bad8Dfd2e60BCEA116fE74548f959f1F2",
+  "contract": "SourceReserveVault",
+  "address": "0x99d9d85EAca66c85526cb8DA2CbF9948FD4B34f1",
+  "transactionHash": "0xcb16ac2dc8824d856047fc3429ecfa55a02cdc2254bc2719b1df3f59a2c59812",
+  "blockNumber": 11667353,
+  "gasUsed": "371266",
+  "transactionFeeWei": "915290567707474",
+  "constructorArguments": {
+    "reserveAsset": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
+    "issuerId": "0x6e4836a0c4a5d2c9bfab7f761d7f81f77ab0df7d7822d9fca727b6141e3de5e9"
+  },
+  "sourceCommit": "ea89392",
+  "compiler": {
+    "solc": "0.8.30",
+    "optimizer": true,
+    "optimizerRuns": 200,
+    "viaIr": true,
+    "evmVersion": "shanghai"
+  },
+  "verifiedReads": {
+    "runtimeCodeBytes": 1447,
+    "reserveAsset": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
+    "issuerId": "0x6e4836a0c4a5d2c9bfab7f761d7f81f77ab0df7d7822d9fca727b6141e3de5e9",
+    "totalDeposited": "0",
+    "reserveBalance": "0"
+  },
+  "explorer": {
+    "contract": "https://eth-sepolia.blockscout.com/address/0x99d9d85EAca66c85526cb8DA2CbF9948FD4B34f1",
+    "transaction": "https://eth-sepolia.blockscout.com/tx/0xcb16ac2dc8824d856047fc3429ecfa55a02cdc2254bc2719b1df3f59a2c59812"
+  }
+}

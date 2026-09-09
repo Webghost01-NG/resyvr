@@ -37,6 +37,7 @@ ReserveDeposited(
   bytes32 indexed issuerId,
   bytes32 indexed depositId,
   address indexed beneficiary,
+  address depositor,
   uint256 amount
 )
 
@@ -146,4 +147,3 @@ working issuance rail rather than a trustless two-way stablecoin.
   attestation has latency.
 - A proof submitter affects liveness, not the verified recipient or amount.
 - No contract audit is implied by tests or testnet deployment.
-
