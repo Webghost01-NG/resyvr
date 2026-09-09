@@ -7,15 +7,18 @@ already pinned in `config/networks.json`.
 
 ## GitHub Pages
 
-After the repository owner enables Pages, use these settings:
+GitHub Pages is enabled with these settings:
 
 - **Source:** Deploy from a branch
 - **Branch:** `main`
 - **Folder:** `/ (root)`
 
-The expected project URL is
-`https://webghost01-ng.github.io/resyvr/`. Treat that address as pending until
-GitHub reports a successful deployment and it opens in a logged-out browser.
+**Live URL:** https://webghost01-ng.github.io/resyvr/
+
+GitHub reported build `1205198421` successful for commit `de04adf`, with HTTPS
+enforced. A logged-out mobile-width browser check confirmed the root redirects
+to `/resyvr/dashboard/`, live CC3 reads load, the pilot shows 5 USDC reserve and
+5 rvUSD supply, and the page has no horizontal overflow.
 
 After activation, check both routes:
 

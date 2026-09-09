@@ -13,7 +13,7 @@
 | Submission copy | `docs/submission.md` |
 | Demo narration | `docs/demo-script.md` |
 | Local product URL | `http://127.0.0.1:8000/dashboard/` after `npm run dashboard` |
-| Public product URL | Pending GitHub Pages activation; see `docs/public-hosting.md` |
+| Public product URL | https://webghost01-ng.github.io/resyvr/ |
 
 ## Evidence gate
 
@@ -31,6 +31,8 @@
 - [x] Current hero and multi-issuer screenshots are committed.
 - [x] Three-minute narration covers self-service issuance, repeat minting, proof
       progress, live evidence, and limitations.
+- [x] Public Pages root and dashboard return HTTP 200 over HTTPS.
+- [x] Logged-out mobile check loads fresh CC3 state with no horizontal overflow.
 
 ## Final recording gate
 
@@ -45,7 +47,7 @@
 - [ ] Paste `docs/submission.md` without changing evidence values.
 - [ ] Select the RWA track.
 - [ ] Add the public GitHub repository.
-- [ ] Add the verified public dashboard URL after Pages activation.
+- [ ] Add https://webghost01-ng.github.io/resyvr/ as the public dashboard URL.
 - [ ] Add the public demo video URL.
 - [ ] Confirm every submitted link opens in a logged-out browser.
 - [ ] Submit before the displayed DoraHacks deadline.
