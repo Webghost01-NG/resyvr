@@ -8,5 +8,9 @@
   "amount": "5000000",
   "approvalTransactionHash": "0xf46d3b9aa7116edccb653181aa6559692d3815d5cbd089ab365b49059d03eb61",
   "depositTransactionHash": "0xbc7b11952b799049cab6159f43c80f4c52242e678891a693f337060e0db3545b",
-  "depositBlockNumber": 11667521
+  "depositBlockNumber": 11667521,
+  "proofController": "0x08D1B8fD3b831e79f000fFA3B1B0F69064080f24",
+  "controllerDeploymentTransactionHash": "0x22a9e2278b1fcb6270b5b700840ba80c868c4890177620fa9cd919737b3b4c36",
+  "proofSubmissionTransactionHash": "0x6276463faffcf6cdc6f77bd991cbe02b25d86f210d743ac79ccb12e26e959ac1",
+  "queryId": "0x6f6b2a76f4bf4ad4d67df82b8e8fd0a115a9dd2230edafd28b5c2e2976c196f1"
 }

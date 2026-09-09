@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "network": "Creditcoin CC3 Testnet",
+  "chainId": 102031,
+  "deployer": "0x6CeD8D6Bad8Dfd2e60BCEA116fE74548f959f1F2",
+  "contract": "ProofReserveController",
+  "address": "0x08D1B8fD3b831e79f000fFA3B1B0F69064080f24",
+  "deploymentTransactionHash": "0x22a9e2278b1fcb6270b5b700840ba80c868c4890177620fa9cd919737b3b4c36",
+  "deploymentBlockNumber": 5457456,
+  "deploymentGasUsed": "1426525",
+  "configuration": {
+    "sourceChainKey": 1,
+    "sourceVault": "0x99d9d85EAca66c85526cb8DA2CbF9948FD4B34f1",
+    "sourceExecutor": "0xdb9B1e94B5b69Df7e401DDbedE43491141047dB3",
+    "reserveAsset": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
+    "issuerId": "0x6e4836a0c4a5d2c9bfab7f761d7f81f77ab0df7d7822d9fca727b6141e3de5e9"
+  },
+  "proof": {
+    "sourceTransactionHash": "0xbc7b11952b799049cab6159f43c80f4c52242e678891a693f337060e0db3545b",
+    "sourceBlockNumber": 11667521,
+    "sourceTransactionIndex": 26,
+    "transactionBytes": 4704,
+    "merkleSiblings": 7,
+    "continuityRoots": 10,
+    "calldataHash": "0x31011d256388bb99afd4dcd40e03315ef3f93c1c50864ab819538032af0031ed",
+    "submissionTransactionHash": "0x6276463faffcf6cdc6f77bd991cbe02b25d86f210d743ac79ccb12e26e959ac1",
+    "submissionBlockNumber": 5457477,
+    "submissionGasUsed": "221926",
+    "queryId": "0x6f6b2a76f4bf4ad4d67df82b8e8fd0a115a9dd2230edafd28b5c2e2976c196f1"
+  },
+  "verifiedState": {
+    "totalVerifiedReserve": "5000000",
+    "beneficiaryVerifiedBalance": "5000000",
+    "depositIdConsumed": true,
+    "queryIdConsumed": true,
+    "replayCallRevertSelector": "0x62e48a65",
+    "replayCallError": "QueryAlreadyProcessed(bytes32)"
+  },
+  "explorer": {
+    "contract": "https://creditcoin-testnet.blockscout.com/address/0x08D1B8fD3b831e79f000fFA3B1B0F69064080f24",
+    "deploymentTransaction": "https://creditcoin-testnet.blockscout.com/tx/0x22a9e2278b1fcb6270b5b700840ba80c868c4890177620fa9cd919737b3b4c36",
+    "proofTransaction": "https://creditcoin-testnet.blockscout.com/tx/0x6276463faffcf6cdc6f77bd991cbe02b25d86f210d743ac79ccb12e26e959ac1"
+  }
+}
