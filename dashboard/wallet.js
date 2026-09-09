@@ -5,7 +5,7 @@ import {
   encodeExecuteDeposit,
   encodeFactoryDeployment,
   parseUnits,
-} from "./encoding.mjs";
+} from "./encoding.mjs?v=10";
 
 const ISSUER_CREATED_TOPIC = "0x75118ee2db244652d7ac3bbe9a9f199941ece831c61580f5a72e4b7fa9ef245a";
 const RESERVE_DEPOSITED_TOPIC = "0x9ade6207680ee84077f86cc08de4f401b88731138ea5b583f09bd7266113453d";
@@ -101,6 +101,15 @@ function hasFinalActionState(id) {
 function friendlyError(error) {
   if (error?.code === 4001) return "Wallet request rejected. No successful action was recorded.";
   if (error?.code === -32002) return "MetaMask already has a request open.";
+  if (typeof error?.message === "string" && error.message) return error.message;
+  if (typeof error?.data?.message === "string" && error.data.message) return error.data.message;
+  if (typeof error === "object" && error !== null) {
+    try {
+      return JSON.stringify(error);
+    } catch {
+      return "Wallet request failed with an unreadable provider error.";
+    }
+  }
   return error instanceof Error ? error.message : String(error);
 }
 
