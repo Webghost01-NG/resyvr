@@ -13,6 +13,7 @@
 | Submission copy | `docs/submission.md` |
 | Demo narration | `docs/demo-script.md` |
 | Local product URL | `http://127.0.0.1:8000/dashboard/` after `npm run dashboard` |
+| Public product URL | Pending GitHub Pages activation; see `docs/public-hosting.md` |
 
 ## Evidence gate
 
@@ -27,10 +28,13 @@
 - [x] Official Attestcoin examples and nearby hackathon projects are acknowledged.
 - [x] Redemption, reserve-token trust, bond scope, attestation latency, testnet
       status, and audit status are explicit.
+- [x] Current hero and multi-issuer screenshots are committed.
+- [x] Three-minute narration covers self-service issuance, repeat minting, proof
+      progress, live evidence, and limitations.
 
 ## Final recording gate
 
-- [ ] Record the two-minute script at 1080p.
+- [ ] Record the three-minute script at 1080p.
 - [ ] Confirm transaction text remains readable after video compression.
 - [ ] Upload the video and add its public URL to the DoraHacks BUIDL.
 - [ ] Use the final redesigned dashboard selected for the submission.
@@ -41,6 +45,7 @@
 - [ ] Paste `docs/submission.md` without changing evidence values.
 - [ ] Select the RWA track.
 - [ ] Add the public GitHub repository.
+- [ ] Add the verified public dashboard URL after Pages activation.
 - [ ] Add the public demo video URL.
 - [ ] Confirm every submitted link opens in a logged-out browser.
 - [ ] Submit before the displayed DoraHacks deadline.
