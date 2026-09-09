@@ -41,6 +41,12 @@ const bondAbi = [
 const depositEvents = new Interface([
   'event ReserveDeposited(bytes32 indexed issuerId,bytes32 indexed depositId,address indexed beneficiary,address depositor,uint256 amount)',
 ]);
+const factoryEvents = new Interface([
+  'event IssuerCreated(bytes32 indexed issuerId,address indexed administrator,address indexed controller,address token,uint64 sourceChainKey,address sourceVault,address sourceExecutor,address reserveAsset,uint8 decimals,uint256 minimumBond,address bondVault)',
+]);
+const controllerEvents = new Interface([
+  'event ReserveDepositVerified(bytes32 indexed queryId,bytes32 indexed depositId,address indexed beneficiary,address depositor,uint256 amount,uint64 sourceBlockHeight)',
+]);
 
 function equalAddress(actual: string, expected: string): boolean {
   return getAddress(actual) === getAddress(expected);
@@ -103,10 +109,14 @@ async function requireSuccessfulReceipt(
   expectedBlock: number,
   name: string,
   checks: Check[],
+  expectedGas?: string,
 ) {
   const receipt = await provider.getTransactionReceipt(hash);
   expect(receipt?.status === 1, name, `status=1 hash=${hash}`, checks);
   expect(receipt!.blockNumber === expectedBlock, `${name} block`, `block=${receipt!.blockNumber}`, checks);
+  if (expectedGas) {
+    expect(receipt!.gasUsed === BigInt(expectedGas), `${name} gas`, `gas=${receipt!.gasUsed}`, checks);
+  }
   return receipt!;
 }
 
@@ -218,6 +228,124 @@ async function main(): Promise<void> {
   expect(queryUsed, 'Query replay guard', `consumed=${queryUsed}`, checks);
 
   if (issuance.factory && issuance.issuerController && issuance.token && issuance.bondVault) {
+    const [factoryReceipt, issuerReceipt, bondDepositReceipt, bondActivationReceipt, issuerProofReceipt] =
+      await Promise.all([
+        requireSuccessfulReceipt(
+          destination,
+          issuance.factoryDeployment.transactionHash,
+          issuance.factoryDeployment.blockNumber,
+          'Issuer factory deployment receipt',
+          checks,
+          issuance.factoryDeployment.gasUsed,
+        ),
+        requireSuccessfulReceipt(
+          destination,
+          issuance.issuerCreation.transactionHash,
+          issuance.issuerCreation.blockNumber,
+          'Issuer creation receipt',
+          checks,
+          issuance.issuerCreation.gasUsed,
+        ),
+        requireSuccessfulReceipt(
+          destination,
+          issuance.bondDeposit.transactionHash,
+          issuance.bondDeposit.blockNumber,
+          'Bond deposit receipt',
+          checks,
+          issuance.bondDeposit.gasUsed,
+        ),
+        requireSuccessfulReceipt(
+          destination,
+          issuance.bondActivation.transactionHash,
+          issuance.bondActivation.blockNumber,
+          'Bond activation receipt',
+          checks,
+          issuance.bondActivation.gasUsed,
+        ),
+        requireSuccessfulReceipt(
+          destination,
+          issuance.proofSubmission.transactionHash,
+          issuance.proofSubmission.blockNumber,
+          'Issuer proof submission receipt',
+          checks,
+          issuance.proofSubmission.gasUsed,
+        ),
+      ]);
+
+    expect(
+      Boolean(factoryReceipt.contractAddress) && equalAddress(factoryReceipt.contractAddress!, issuance.factory),
+      'Factory receipt contract',
+      factoryReceipt.contractAddress || 'missing',
+      checks,
+    );
+    expect(equalAddress(issuerReceipt.to!, issuance.factory), 'Issuer creation target', issuerReceipt.to!, checks);
+    expect(equalAddress(bondDepositReceipt.to!, issuance.bondVault), 'Bond deposit target', bondDepositReceipt.to!, checks);
+    expect(
+      equalAddress(bondActivationReceipt.to!, issuance.bondVault),
+      'Bond activation target',
+      bondActivationReceipt.to!,
+      checks,
+    );
+    expect(
+      equalAddress(issuerProofReceipt.to!, issuance.issuerController),
+      'Issuer proof submission target',
+      issuerProofReceipt.to!,
+      checks,
+    );
+
+    const issuerCreated = issuerReceipt.logs
+      .filter((log) => equalAddress(log.address, issuance.factory))
+      .map((log) => {
+        try {
+          return factoryEvents.parseLog(log);
+        } catch {
+          return null;
+        }
+      })
+      .find(Boolean);
+    expect(Boolean(issuerCreated), 'Issuer creation event', issuance.issuerCreation.transactionHash, checks);
+    expect(issuerCreated!.args.issuerId === pilot.issuerId, 'Created issuer ID', issuerCreated!.args.issuerId, checks);
+    expect(
+      equalAddress(issuerCreated!.args.administrator, issuance.administrator),
+      'Created issuer administrator',
+      issuerCreated!.args.administrator,
+      checks,
+    );
+    expect(
+      equalAddress(issuerCreated!.args.controller, issuance.issuerController),
+      'Created issuer controller',
+      issuerCreated!.args.controller,
+      checks,
+    );
+    expect(equalAddress(issuerCreated!.args.token, issuance.token), 'Created issuer token', issuerCreated!.args.token, checks);
+    expect(
+      equalAddress(issuerCreated!.args.bondVault, issuance.bondVault),
+      'Created issuer bond vault',
+      issuerCreated!.args.bondVault,
+      checks,
+    );
+
+    const issuerProof = issuerProofReceipt.logs
+      .filter((log) => equalAddress(log.address, issuance.issuerController))
+      .map((log) => {
+        try {
+          return controllerEvents.parseLog(log);
+        } catch {
+          return null;
+        }
+      })
+      .find(Boolean);
+    expect(Boolean(issuerProof), 'Issuer proof event', issuance.proofSubmission.transactionHash, checks);
+    expect(issuerProof!.args.queryId === pilot.queryId, 'Issuer proof query ID', issuerProof!.args.queryId, checks);
+    expect(issuerProof!.args.depositId === pilot.depositId, 'Issuer proof deposit ID', issuerProof!.args.depositId, checks);
+    expect(
+      equalAddress(issuerProof!.args.beneficiary, pilot.beneficiary),
+      'Issuer proof beneficiary',
+      issuerProof!.args.beneficiary,
+      checks,
+    );
+    expect(issuerProof!.args.amount === BigInt(pilot.amount), 'Issuer proof amount', issuerProof!.args.amount.toString(), checks);
+
     await Promise.all([
       requireCode(destination, issuance.factory, 'Issuer factory bytecode', checks),
       requireCode(destination, issuance.issuerController, 'Issuer controller bytecode', checks),
