@@ -114,6 +114,7 @@ contract ProofReserveController {
         verifiedDepositIds[depositRecord.depositId] = true;
         totalVerifiedReserve += depositRecord.amount;
         verifiedBalance[depositRecord.beneficiary] += depositRecord.amount;
+        _afterDepositVerified(depositRecord);
 
         emit ReserveDepositVerified(
             queryId,
@@ -124,6 +125,8 @@ contract ProofReserveController {
             blockHeight
         );
     }
+
+    function _afterDepositVerified(DepositRecord memory) internal virtual { }
 
     function _decodeAndValidateDeposit(bytes memory encodedTransaction)
         internal
