@@ -461,7 +461,7 @@ async function depositReserve() {
   }
 }
 
-function usePilotDeposit() {
+function selectPilotDeposit() {
   flow.depositTransaction = pilot.depositTransactionHash;
   flow.depositBlock = pilot.depositBlockNumber;
   flow.depositId = pilot.depositId;
@@ -470,6 +470,10 @@ function usePilotDeposit() {
   flow.proofCalldata = null;
   flow.proofTransaction = null;
   saveFlow();
+}
+
+function usePilotDeposit() {
+  selectPilotDeposit();
   setActionState(
     "deposit-state",
     `Recorded 5 USDC deposit selected from Sepolia block ${flow.depositBlock}.`,
@@ -578,7 +582,8 @@ function bindActions() {
 }
 
 async function initialize() {
-  if (new URLSearchParams(window.location.search).get("reset") === "1") {
+  const search = new URLSearchParams(window.location.search);
+  if (search.get("reset") === "1") {
     localStorage.removeItem(STORAGE_KEY);
   }
   loadSavedFlow();
@@ -589,6 +594,7 @@ async function initialize() {
     fetchJson("../config/factory-deployment.json"),
   ]);
   await resolveIssuerAddresses();
+  if (search.get("pilot") === "1") selectPilotDeposit();
   bindActions();
 
   if (window.ethereum) {
