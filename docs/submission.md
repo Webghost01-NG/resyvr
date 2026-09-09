@@ -38,17 +38,25 @@ issuer isolation, accounting, bonds, and public evidence.
 - A native CTC bond that must be funded and active before issuance.
 - Public RPC-based coverage and provenance checks that require no wallet or API
   key.
+- A self-service launchpad with live balance and allowance checks, explicit
+  cross-network transaction effects, recoverable pending transactions,
+  multi-issuer management, recipient-directed minting, and Attestcoin progress.
 
 ## How it works
 
-1. An issuer creates a branded asset through `IssuerFactory` on Creditcoin.
-2. The issuer funds its isolated `CTCBondVault` and activates issuance.
-3. Reserve assets enter the configured `SourceReserveVault` on Ethereum.
-4. Attestcoin attests the source block and constructs the transaction proof.
-5. `IssuerController` verifies inclusion and every deposit field, consumes two
+1. An issuer deploys an isolated `SourceReserveVault` on Ethereum Sepolia.
+2. `IssuerFactory` creates its branded token, controller, and CTC bond vault on
+   Creditcoin.
+3. The issuer funds its isolated `CTCBondVault` and activates issuance.
+4. Reserve assets enter the configured source vault for a chosen beneficiary.
+5. Attestcoin attests the source block and constructs the transaction proof.
+6. `IssuerController` verifies inclusion and every deposit field, consumes two
    replay keys, updates reserve accounting, and mints the exact amount.
-6. The dashboard reads the live controller, token, and bond state and links the
+7. The dashboard reads the live controller, token, and bond state and links the
    source and destination transactions.
+
+To issue more units of the same asset, the administrator reopens that issuer
+and repeats the reserve-deposit and proof steps. It does not deploy a new token.
 
 ## Working testnet evidence
 
@@ -77,6 +85,12 @@ The vault now holds 6 test USDC because a later 1-USDC deposit has not been
 proven to the issuer controller. Verified reserve and rvUSD supply both remain
 5. This is the intended boundary: a source deposit cannot mint until its proof
 is accepted.
+
+## Product screenshots
+
+![Live proof dashboard](screenshots/live-proof-dashboard.png)
+
+![On-chain multi-issuer portfolio](screenshots/issuer-portfolio.png)
 
 ## Why Creditcoin matters
 

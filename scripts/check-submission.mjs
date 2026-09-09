@@ -1,14 +1,18 @@
 import { readFile } from "node:fs/promises";
 
-const [submission, demo, checklist, issuance, pilot] = await Promise.all([
+const [submission, demo, checklist, hosting, rootIndex, heroScreenshot, portfolioScreenshot, issuance, pilot] = await Promise.all([
   readFile(new URL("../docs/submission.md", import.meta.url), "utf8"),
   readFile(new URL("../docs/demo-script.md", import.meta.url), "utf8"),
   readFile(new URL("../docs/submission-checklist.md", import.meta.url), "utf8"),
+  readFile(new URL("../docs/public-hosting.md", import.meta.url), "utf8"),
+  readFile(new URL("../index.html", import.meta.url), "utf8"),
+  readFile(new URL("../docs/screenshots/live-proof-dashboard.png", import.meta.url)),
+  readFile(new URL("../docs/screenshots/issuer-portfolio.png", import.meta.url)),
   readFile(new URL("../config/issuance.json", import.meta.url), "utf8").then(JSON.parse),
   readFile(new URL("../config/pilot.json", import.meta.url), "utf8").then(JSON.parse),
 ]);
 
-const packageText = `${submission}\n${demo}\n${checklist}`;
+const packageText = `${submission}\n${demo}\n${checklist}\n${hosting}`;
 const normalizedSubmission = submission.toLowerCase().replace(/\s+/g, " ");
 const requiredEvidence = [
   issuance.factory,
@@ -37,6 +41,14 @@ if (!submission.includes("Attestcoin bridge example") || !submission.includes("M
 
 if (/\b(?:TODO|TBD|FIXME)\b/.test(packageText)) {
   throw new Error("Submission package contains an unresolved placeholder");
+}
+
+if (!demo.includes("three-minute demo")) throw new Error("Demo script is not the final three-minute version");
+if (!rootIndex.includes("./dashboard/")) throw new Error("Public project root does not lead to the dashboard");
+for (const [name, screenshot] of [["hero", heroScreenshot], ["portfolio", portfolioScreenshot]]) {
+  if (screenshot.length < 10_000 || screenshot.subarray(1, 4).toString() !== "PNG") {
+    throw new Error(`${name} screenshot is missing or invalid`);
+  }
 }
 
 console.log(`PASS submission package: ${requiredEvidence.length} evidence identities and 4 trust boundaries checked`);
