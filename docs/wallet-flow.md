@@ -60,6 +60,9 @@ symbol, wallet account, and network before confirming deployment.
    source chain before encoding the submission. Attestation waiting and a
    proof-service error do not mean the reserve deposit failed. Retry proof
    generation for the existing deposit when the prerequisite becomes available.
+   The progress panel shows the latest attested height, required deposit block,
+   remaining blocks, and elapsed wait. A 20-minute browser wait ends with retry
+   guidance and never clears the confirmed deposit or asks for another transfer.
 6. **Submit proof and mint — Creditcoin CC3.** Select **Mint proof-backed
    tokens**. The wallet sends the proof to your issuer controller. The
    controller verifies it through Creditcoin's native verifier, checks the

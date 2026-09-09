@@ -30,6 +30,9 @@ Selecting a card also changes the public metrics and immutable configuration to
 that issuer's live controller. Reserve actions validate live wallet balance and
 vault allowance before requesting a signature. Token links use the explorer's
 contract-address route so an unminted token does not lead to an unindexed page.
+Proof generation reports Attestcoin's current and required heights, block gap,
+and elapsed time. Proof-service failures preserve the existing deposit for a
+safe retry without another wallet signature.
 See [`../docs/wallet-flow.md`](../docs/wallet-flow.md) for the six steps,
 transaction confirmations, and failure states.
 

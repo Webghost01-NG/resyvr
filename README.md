@@ -109,6 +109,9 @@ the page recovers confirmed progress and prevents blind duplicate submissions.
 Before requesting a reserve transaction, the launchpad reads the connected
 wallet's current test-USDC balance and vault allowance. Amounts above the live
 balance and unapproved deposits are blocked with a specific message.
+While Attestcoin catches up, the proof step shows the attested height, required
+Sepolia block, remaining block gap, and elapsed time. A timeout or proof-service
+error keeps the confirmed deposit selected for a signature-free retry.
 
 ## Status
 

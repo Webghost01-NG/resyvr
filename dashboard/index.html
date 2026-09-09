@@ -7,7 +7,7 @@
     <meta name="theme-color" content="#080914" />
     <title>Resyvr — Proof-backed issuance on Creditcoin</title>
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="./styles.css?v=5" />
+    <link rel="stylesheet" href="./styles.css?v=6" />
   </head>
   <body>
     <div class="page-noise" aria-hidden="true"></div>
@@ -269,6 +269,15 @@
               <h3>Generate proof</h3>
               <p>Waits for source finality, then retrieves and validates the official proof for your Sepolia deposit.</p>
               <p class="action-state" id="proof-generation-state">A successful reserve deposit is required.</p>
+              <div class="attestation-progress" id="attestation-progress" hidden aria-live="polite">
+                <div class="attestation-track" aria-hidden="true"><span id="attestation-progress-bar"></span></div>
+                <dl>
+                  <div><dt>Attested</dt><dd id="attested-height">—</dd></div>
+                  <div><dt>Required</dt><dd id="required-height">—</dd></div>
+                  <div><dt>Blocks left</dt><dd id="attestation-gap">—</dd></div>
+                  <div><dt>Elapsed</dt><dd id="attestation-elapsed">—</dd></div>
+                </dl>
+              </div>
               <button class="action-button" id="generate-proof" type="button" disabled>Generate proof</button>
             </div>
           </li>
@@ -334,6 +343,6 @@
 
     <script type="module" src="./motion.js?v=1"></script>
     <script type="module" src="./app.js?v=13"></script>
-    <script type="module" src="./wallet.js?v=19"></script>
+    <script type="module" src="./wallet.js?v=20"></script>
   </body>
 </html>

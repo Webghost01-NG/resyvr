@@ -59,6 +59,7 @@ let pilot;
 let issuance;
 let sourceVaultDeployment;
 let portfolioRequest = 0;
+let proofRequest = 0;
 
 function byId(id) {
   const element = document.getElementById(id);
@@ -849,7 +850,7 @@ function render() {
   byId("approve-reserve").disabled = transactionPending || !connected || !flow.controller || !flow.bondActive || !hasReserveBalance || hasReserveAllowance;
   byId("deposit-reserve").disabled = transactionPending || !connected || !flow.controller || !flow.bondActive || !hasReserveBalance || !hasReserveAllowance || !validReserveBeneficiary();
   byId("use-pilot-deposit").disabled = !connected || !pilotMode || Boolean(flow.proofTransaction);
-  byId("generate-proof").disabled = !flow.depositTransaction || !flow.depositBlock;
+  byId("generate-proof").disabled = !flow.depositTransaction || !flow.depositBlock || Boolean(flow.proofCalldata);
   byId("submit-proof").disabled = transactionPending || !connected || !flow.controller || !flow.proofCalldata;
 
   if (flow.sourceVault && !hasFinalActionState("source-vault-state")) {
@@ -943,7 +944,10 @@ async function connectWallet() {
 }
 
 function resetDisplayedFlow() {
+  proofRequest += 1;
   byId("reserve-beneficiary").value = "";
+  byId("attestation-progress").hidden = true;
+  byId("attestation-progress-bar").style.width = "0%";
   const states = {
     "source-vault-state": "Connect your wallet and define the token.",
     "create-state": "A confirmed Sepolia reserve vault is required.",
@@ -1345,28 +1349,85 @@ async function validateSourceDeposit() {
   }
 }
 
+function formatElapsed(milliseconds) {
+  const seconds = Math.max(0, Math.floor(milliseconds / 1_000));
+  const minutes = Math.floor(seconds / 60);
+  return minutes ? `${minutes}m ${seconds % 60}s` : `${seconds}s`;
+}
+
+function updateAttestationProgress(attestedHeight, requiredHeight, firstHeight, startedAt) {
+  const progress = byId("attestation-progress");
+  const covered = attestedHeight >= requiredHeight;
+  const range = Math.max(1, requiredHeight - firstHeight);
+  const completed = Math.max(0, Math.min(range, attestedHeight - firstHeight));
+  const percent = covered ? 100 : Math.max(4, Math.round((completed * 100) / range));
+  progress.hidden = false;
+  byId("attestation-progress-bar").style.width = `${percent}%`;
+  setTextContent("attested-height", attestedHeight.toLocaleString("en-US"));
+  setTextContent("required-height", requiredHeight.toLocaleString("en-US"));
+  setTextContent("attestation-gap", Math.max(0, requiredHeight - attestedHeight).toLocaleString("en-US"));
+  setTextContent("attestation-elapsed", formatElapsed(Date.now() - startedAt));
+}
+
+function setTextContent(id, value) {
+  byId(id).textContent = value;
+}
+
+async function fetchProofJson(path, label) {
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), 12_000);
+  try {
+    const response = await fetch(`${networks.destination.proofBuilderUrl}${path}`, {
+      cache: "no-store",
+      signal: controller.signal,
+    });
+    if (!response.ok) throw new Error(`${label} returned HTTP ${response.status}`);
+    return response.json();
+  } catch (error) {
+    if (error?.name === "AbortError") throw new Error(`${label} timed out`);
+    throw error;
+  } finally {
+    window.clearTimeout(timeout);
+  }
+}
+
 async function generateProof() {
   const button = byId("generate-proof");
+  const requestId = ++proofRequest;
+  const depositTransaction = flow.depositTransaction;
+  let sourceValidated = false;
   button.disabled = true;
+  button.textContent = "Checking Attestcoin…";
   try {
     await validateSourceDeposit();
+    sourceValidated = true;
+    const startedAt = Date.now();
     const deadline = Date.now() + 20 * 60_000;
-    while (Date.now() < deadline) {
-      const response = await fetch(`${networks.destination.proofBuilderUrl}/api/v1/attested-height/${networks.source.attestcoinChainKey}`, { cache: "no-store" });
-      if (!response.ok) throw new Error(`Attested-height request returned HTTP ${response.status}`);
-      const { attestedHeight } = await response.json();
-      if (Number(attestedHeight) >= flow.depositBlock) break;
-      setActionState("proof-generation-state", `Waiting for Attestcoin: ${Number(attestedHeight).toLocaleString("en-US")} / ${flow.depositBlock.toLocaleString("en-US")}`);
+    let firstHeight = null;
+    let covered = false;
+    while (Date.now() < deadline && requestId === proofRequest) {
+      const { attestedHeight } = await fetchProofJson(
+        `/api/v1/attested-height/${networks.source.attestcoinChainKey}`,
+        "Attested-height request",
+      );
+      const currentHeight = Number(attestedHeight);
+      firstHeight ??= currentHeight;
+      updateAttestationProgress(currentHeight, flow.depositBlock, firstHeight, startedAt);
+      if (currentHeight >= flow.depositBlock) {
+        covered = true;
+        break;
+      }
+      setActionState("proof-generation-state", `Waiting for Attestcoin coverage. Keep this deposit; no new signature is needed.`);
       await new Promise((resolve) => window.setTimeout(resolve, 15_000));
     }
-    if (Date.now() >= deadline) throw new Error("Attestcoin wait exceeded 20 minutes; retry without signing anything");
+    if (requestId !== proofRequest || flow.depositTransaction !== depositTransaction) return;
+    if (!covered) throw new Error("Attestcoin wait exceeded 20 minutes; retry this proof without depositing again");
 
-    const response = await fetch(
-      `${networks.destination.proofBuilderUrl}/api/v1/proof-by-tx/${networks.source.attestcoinChainKey}/${flow.depositTransaction}`,
-      { cache: "no-store" },
+    setActionState("proof-generation-state", "Source block is covered. Retrieving and validating the proof…");
+    const proof = await fetchProofJson(
+      `/api/v1/proof-by-tx/${networks.source.attestcoinChainKey}/${flow.depositTransaction}`,
+      "Proof request",
     );
-    if (!response.ok) throw new Error(`Proof request returned HTTP ${response.status}`);
-    const proof = await response.json();
     if (proof.txHash?.toLowerCase() !== flow.depositTransaction.toLowerCase()) throw new Error("Proof transaction hash mismatch");
     if (Number(proof.headerNumber) !== flow.depositBlock) throw new Error("Proof block height mismatch");
     if (Number(proof.chainKey) !== networks.source.attestcoinChainKey) throw new Error("Proof source-chain mismatch");
@@ -1374,9 +1435,19 @@ async function generateProof() {
     saveFlow();
     setActionState("proof-generation-state", `Proof ready: ${proof.merkleProof.siblings.length} siblings, ${proof.continuityProof.roots.length} continuity roots.`, "success");
   } catch (error) {
-    setActionState("proof-generation-state", friendlyError(error), "error");
+    if (requestId === proofRequest) {
+      const message = friendlyError(error);
+      setActionState(
+        "proof-generation-state",
+        sourceValidated ? `${message}. Your reserve deposit is preserved; retry proof generation without depositing again.` : message,
+        "error",
+      );
+    }
   } finally {
-    render();
+    if (requestId === proofRequest) {
+      button.textContent = "Generate proof";
+      render();
+    }
   }
 }
 
