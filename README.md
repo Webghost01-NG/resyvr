@@ -77,8 +77,10 @@ The launchpad then guides six steps:
    your isolated controller, branded ERC-20 token, and CTC bond vault.
 3. **Post and activate bond — Creditcoin CC3.** Deposit the required native
    CTC, then confirm a separate activation transaction.
-4. **Deposit reserve — Sepolia.** Approve the entered USDC amount, then lock
-   it in your vault with your wallet as the token beneficiary.
+4. **Deposit reserve — Sepolia.** Approve the entered USDC amount, choose the
+   Creditcoin recipient, then lock the reserve in your vault. Leave the
+   recipient empty to mint to the connected wallet, or enter another valid
+   `0x` wallet address to mint directly to that user after proof verification.
 5. **Generate proof.** Wait for Attestcoin coverage and retrieve the deposit
    proof. This step requires no wallet signature.
 6. **Submit proof and mint — Creditcoin CC3.** Submit the proof to your
@@ -94,7 +96,12 @@ path; use test assets only. Redemption remains deferred.
 Wallet transactions use a buffered public-RPC gas estimate so MetaMask does not
 fall back to a gas limit above the network cap. When a connected administrator
 has created at least two factory issuers, the launchpad shows an on-chain asset
-portfolio with each token address, controller, network, decimals, and copy link.
+portfolio with each token address, controller, network, decimals, and management
+action. Reopening an asset restores its live bond state and latest unconsumed
+reserve deposit so the administrator can finish the proof and mint sequence.
+Importing a token contract into MetaMask only makes an existing balance visible;
+tokens reach a holder through proof-backed minting to that deposit's recipient
+or a later ERC-20 transfer on Creditcoin CC3.
 Submitted transaction hashes are saved before receipt polling, so refreshing
 the page recovers confirmed progress and prevents blind duplicate submissions.
 

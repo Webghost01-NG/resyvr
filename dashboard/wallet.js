@@ -15,6 +15,7 @@ const BOND_VAULT_SELECTOR = "0x990826b3";
 const BOND_ACTIVE_SELECTOR = "0x02fb0c5e";
 const BOND_MINIMUM_SELECTOR = "0xaa7517e1";
 const SOURCE_EXECUTOR_SELECTOR = "0xacfb1e26";
+const VERIFIED_DEPOSIT_SELECTOR = "0xe6d82c39";
 const STORAGE_KEY = "resyvr-issuer-flow-v2";
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
@@ -33,6 +34,7 @@ const flow = {
   token: null,
   bondVault: null,
   bondActive: false,
+  bondFunded: false,
   minimumBondWei: null,
   approvalTransaction: null,
   bondTransaction: null,
@@ -42,6 +44,7 @@ const flow = {
   depositId: null,
   depositAmount: null,
   depositAccount: null,
+  depositBeneficiary: null,
   proofCalldata: null,
   proofTransaction: null,
   pendingAction: null,
@@ -91,6 +94,7 @@ function freshIssuerState() {
     token: null,
     bondVault: null,
     bondActive: false,
+    bondFunded: false,
     minimumBondWei: null,
     approvalTransaction: null,
     bondTransaction: null,
@@ -100,6 +104,7 @@ function freshIssuerState() {
     depositId: null,
     depositAmount: null,
     depositAccount: null,
+    depositBeneficiary: null,
     proofCalldata: null,
     proofTransaction: null,
     pendingAction: null,
@@ -341,6 +346,7 @@ async function applyRecoveredAction(pending, receipt) {
     void refreshIssuerPortfolio();
   } else if (action === "depositBond") {
     flow.bondTransaction = transactionHash;
+    flow.bondFunded = true;
     setActionState("bond-state", "CTC bond deposit recovered. Activate issuance next.", "success", transactionHash, networks.destination.explorerUrl);
   } else if (action === "activateBond") {
     flow.activationTransaction = transactionHash;
@@ -355,6 +361,7 @@ async function applyRecoveredAction(pending, receipt) {
     flow.depositId = context.depositId;
     flow.depositAmount = context.amount;
     flow.depositAccount = context.account;
+    flow.depositBeneficiary = context.beneficiary || context.account;
     flow.proofCalldata = null;
     flow.proofTransaction = null;
     setActionState("deposit-state", `Reserve deposit recovered in Sepolia block ${flow.depositBlock}.`, "success", transactionHash, networks.source.explorerUrl);
@@ -440,6 +447,7 @@ function renderIssuerPortfolio(assets) {
   for (const asset of assets) {
     const card = document.createElement("article");
     card.className = "issuer-asset-card";
+    if (flow.issuerId?.toLowerCase() === asset.issuerId.toLowerCase()) card.classList.add("selected");
 
     const titleRow = document.createElement("div");
     titleRow.className = "issuer-asset-title";
@@ -478,7 +486,12 @@ function renderIssuerPortfolio(assets) {
         copyButton.textContent = "Copy failed";
       }
     });
-    actions.append(controllerLink, copyButton);
+    const manageButton = document.createElement("button");
+    manageButton.type = "button";
+    manageButton.textContent = card.classList.contains("selected") ? "Managing" : "Manage issuer";
+    manageButton.disabled = card.classList.contains("selected") || Boolean(flow.pendingAction);
+    manageButton.addEventListener("click", () => void selectIssuer(asset, manageButton));
+    actions.append(manageButton, controllerLink, copyButton);
     card.append(titleRow, tokenLink, detail, actions);
     list.append(card);
   }
@@ -514,15 +527,101 @@ async function refreshIssuerPortfolio() {
         issuerId: log.topics[1],
         controller: wordAddress(log.topics[3]),
         token,
+        sourceVault: wordAddress(words[2]),
+        sourceExecutor: wordAddress(words[3]) || ZERO_ADDRESS,
+        reserveAsset: wordAddress(words[4]),
+        bondVault: wordAddress(words[7]),
         name: decodeAbiString(nameResult),
         symbol: decodeAbiString(symbolResult),
         decimals: Number(BigInt(`0x${words[5] || "0"}`)),
         blockNumber: Number(BigInt(log.blockNumber)),
+        creationTransaction: log.transactionHash,
       };
     }));
     if (requestId === portfolioRequest) renderIssuerPortfolio(assets.filter((asset) => asset.token && asset.controller));
   } catch {
     if (requestId === portfolioRequest) renderIssuerPortfolio([]);
+  }
+}
+
+async function latestUnconsumedDeposit(asset) {
+  const latestHex = await publicRpc(networks.source.rpcUrl, "eth_blockNumber");
+  const latest = Number(BigInt(latestHex));
+  const chunkSize = 25_000;
+  const oldest = Math.max(0, latest - 250_000);
+  for (let toBlock = latest; toBlock >= oldest; toBlock -= chunkSize) {
+    const fromBlock = Math.max(oldest, toBlock - chunkSize + 1);
+    const logs = await publicRpc(networks.source.rpcUrl, "eth_getLogs", [{
+      address: asset.sourceVault,
+      fromBlock: `0x${fromBlock.toString(16)}`,
+      toBlock: `0x${toBlock.toString(16)}`,
+      topics: [RESERVE_DEPOSITED_TOPIC, asset.issuerId],
+    }]);
+    for (const log of logs.reverse()) {
+      const depositId = log.topics[2];
+      const consumed = await contractCall(
+        networks.destination.rpcUrl,
+        asset.controller,
+        `${VERIFIED_DEPOSIT_SELECTOR}${depositId.slice(2)}`,
+      );
+      if (BigInt(consumed || "0x0") !== 0n) continue;
+      return {
+        transactionHash: log.transactionHash,
+        blockNumber: Number(BigInt(log.blockNumber)),
+        depositId,
+        beneficiary: wordAddress(log.topics[3]),
+        depositor: wordAddress(log.data.slice(2, 66)),
+        amount: BigInt(`0x${log.data.slice(-64)}`).toString(),
+      };
+    }
+  }
+  return null;
+}
+
+async function selectIssuer(asset, button) {
+  if (flow.pendingAction) return;
+  const account = flow.account;
+  const chainId = flow.chainId;
+  button.disabled = true;
+  button.textContent = "Loading issuer…";
+  resetDisplayedFlow();
+  Object.assign(flow, freshIssuerState(), {
+    account,
+    chainId,
+    mode: "managed",
+    factory: issuance.factory,
+    issuerId: asset.issuerId,
+    tokenName: asset.name || "Issuer token",
+    tokenSymbol: asset.symbol || "TOKEN",
+    sourceVault: asset.sourceVault,
+    sourceExecutor: asset.sourceExecutor,
+    controller: asset.controller,
+    token: asset.token,
+    bondVault: asset.bondVault,
+    creationTransaction: asset.creationTransaction,
+  });
+  try {
+    await resolveIssuerAddresses();
+    const deposit = await latestUnconsumedDeposit(asset);
+    if (deposit) {
+      flow.depositTransaction = deposit.transactionHash;
+      flow.depositBlock = deposit.blockNumber;
+      flow.depositId = deposit.depositId;
+      flow.depositAmount = deposit.amount;
+      flow.depositAccount = deposit.depositor;
+      flow.depositBeneficiary = deposit.beneficiary;
+    }
+    saveFlow();
+    render();
+    void refreshIssuerPortfolio();
+    byId("launch").scrollIntoView({ behavior: "smooth", block: "start" });
+    byId("signature-effect").textContent = deposit
+      ? `Issuer restored with an unconsumed Sepolia deposit from block ${deposit.blockNumber.toLocaleString("en-US")}.`
+      : "Issuer restored from on-chain state. No unconsumed reserve deposit was found; approve and deposit a new reserve amount.";
+  } catch (error) {
+    button.disabled = false;
+    button.textContent = "Manage issuer";
+    byId("signature-effect").textContent = `Could not restore issuer: ${friendlyError(error)}`;
   }
 }
 
@@ -626,12 +725,14 @@ async function resolveIssuerAddresses() {
     flow.sourceExecutor = wordAddress(executorResult) || ZERO_ADDRESS;
   }
   if (flow.bondVault) {
-    const [activeResult, minimumResult] = await Promise.all([
+    const [activeResult, minimumResult, balanceResult] = await Promise.all([
       contractCall(networks.destination.rpcUrl, flow.bondVault, BOND_ACTIVE_SELECTOR),
       contractCall(networks.destination.rpcUrl, flow.bondVault, BOND_MINIMUM_SELECTOR),
+      publicRpc(networks.destination.rpcUrl, "eth_getBalance", [flow.bondVault, "latest"]),
     ]);
     flow.bondActive = BigInt(activeResult || "0x0") === 1n;
     flow.minimumBondWei = BigInt(minimumResult).toString();
+    flow.bondFunded = BigInt(balanceResult || "0x0") >= BigInt(flow.minimumBondWei);
   }
   saveFlow();
 }
@@ -658,6 +759,7 @@ function render() {
   byId("connect-wallet").textContent = connected ? "Change wallet" : "Connect wallet ↗";
   byId("wallet-avatar").textContent = connected ? flow.account.slice(2, 4).toUpperCase() : "W";
   byId("wallet-avatar").style.setProperty("--wallet-hue", connected ? String(Number.parseInt(flow.account.slice(2, 4), 16) + 180) : "250");
+  byId("reserve-beneficiary").placeholder = connected ? flow.account : "Connect a wallet first";
 
   const pilotMode = flow.mode === "pilot";
   const tokenNameInput = byId("token-name");
@@ -685,10 +787,10 @@ function render() {
 
   byId("deploy-source-vault").disabled = transactionPending || !connected || pilotMode || Boolean(flow.sourceVault) || !validTokenDraft();
   byId("create-issuer").disabled = transactionPending || !connected || !flow.factory || !flow.sourceVault || Boolean(flow.controller);
-  byId("deposit-bond").disabled = transactionPending || !connected || !flow.bondVault || flow.bondActive || Boolean(flow.bondTransaction);
-  byId("activate-bond").disabled = transactionPending || !connected || !flow.bondVault || flow.bondActive || (!flow.bondTransaction && !pilotMode);
+  byId("deposit-bond").disabled = transactionPending || !connected || !flow.bondVault || flow.bondActive || flow.bondFunded;
+  byId("activate-bond").disabled = transactionPending || !connected || !flow.bondVault || flow.bondActive || !flow.bondFunded;
   byId("approve-reserve").disabled = transactionPending || !connected || !flow.controller || !flow.bondActive;
-  byId("deposit-reserve").disabled = transactionPending || !connected || !flow.controller || !flow.bondActive || !flow.approvalTransaction;
+  byId("deposit-reserve").disabled = transactionPending || !connected || !flow.controller || !flow.bondActive || !flow.approvalTransaction || !validReserveBeneficiary();
   byId("use-pilot-deposit").disabled = !connected || !pilotMode || Boolean(flow.proofTransaction);
   byId("generate-proof").disabled = !flow.depositTransaction || !flow.depositBlock;
   byId("submit-proof").disabled = transactionPending || !connected || !flow.controller || !flow.proofCalldata;
@@ -715,7 +817,7 @@ function render() {
   if (flow.bondVault && !hasFinalActionState("bond-state")) {
     const message = flow.bondActive
       ? `Bond active. Vault: ${shortHex(flow.bondVault)}`
-      : flow.bondTransaction
+      : flow.bondFunded
         ? "Bond deposit confirmed. Activate issuance next."
         : `Bond vault ready: ${shortHex(flow.bondVault)}`;
     setActionState("bond-state", message, flow.bondActive ? "success" : "waiting");
@@ -769,6 +871,7 @@ async function connectWallet() {
 }
 
 function resetDisplayedFlow() {
+  byId("reserve-beneficiary").value = "";
   const states = {
     "source-vault-state": "Connect your wallet and define the token.",
     "create-state": "A confirmed Sepolia reserve vault is required.",
@@ -849,6 +952,7 @@ async function loadPilotIssuer() {
     token: issuance.token,
     bondVault: issuance.bondVault,
     bondActive: Boolean(issuance.bondActivation?.transactionHash),
+    bondFunded: Boolean(issuance.bondDeposit?.transactionHash),
     minimumBondWei: issuance.minimumBondWei,
     bondTransaction: issuance.bondDeposit?.transactionHash || null,
     activationTransaction: issuance.bondActivation?.transactionHash || null,
@@ -857,6 +961,7 @@ async function loadPilotIssuer() {
     depositId: pilot.depositId,
     depositAmount: pilot.amount,
     depositAccount: pilot.beneficiary,
+    depositBeneficiary: pilot.beneficiary,
     proofTransaction: issuance.proofSubmission?.transactionHash || null,
   });
   try {
@@ -958,6 +1063,7 @@ async function depositBond() {
       recordPendingAction("depositBond", "destination", "bond-state", "Bond deposit submitted. Waiting for CC3 confirmation…"),
     );
     flow.bondTransaction = transactionHash;
+    flow.bondFunded = true;
     clearPendingAction(transactionHash);
     setActionState("bond-state", "CTC bond deposited. Activation remains.", "success", transactionHash, networks.destination.explorerUrl);
     saveFlow();
@@ -995,6 +1101,19 @@ function selectedReserveAmount() {
   return parseUnits(byId("reserve-amount").value.trim(), networks.source.reserveAsset.decimals);
 }
 
+function validReserveBeneficiary() {
+  const value = byId("reserve-beneficiary").value.trim();
+  return value === "" ? Boolean(flow.account) : /^0x[0-9a-fA-F]{40}$/.test(value) && !/^0x0{40}$/i.test(value);
+}
+
+function selectedReserveBeneficiary() {
+  const value = byId("reserve-beneficiary").value.trim() || flow.account;
+  if (!/^0x[0-9a-fA-F]{40}$/.test(value || "") || /^0x0{40}$/i.test(value)) {
+    throw new Error("Enter a valid non-zero beneficiary wallet address");
+  }
+  return value;
+}
+
 async function approveReserve() {
   const button = byId("approve-reserve");
   button.disabled = true;
@@ -1024,17 +1143,18 @@ async function depositReserve() {
   try {
     const amount = selectedReserveAmount();
     const depositId = randomBytes32();
+    const beneficiary = selectedReserveBeneficiary();
     setActionState("deposit-state", "Waiting for the Sepolia reserve-deposit signature…");
     const { transactionHash, receipt } = await sendWalletTransaction(
       "source",
-      { to: flow.sourceVault, data: encodeDeposit(depositId, flow.account, amount) },
-      `Lock ${byId("reserve-amount").value.trim()} ${networks.source.reserveAsset.symbol} in the Sepolia vault for ${shortHex(flow.account)}.`,
+      { to: flow.sourceVault, data: encodeDeposit(depositId, beneficiary, amount) },
+      `Lock ${byId("reserve-amount").value.trim()} ${networks.source.reserveAsset.symbol} in the Sepolia vault and mint to ${shortHex(beneficiary)} after proof.`,
       recordPendingAction(
         "depositReserve",
         "source",
         "deposit-state",
         "Reserve deposit submitted. Waiting for Sepolia confirmation…",
-        { depositId, amount: amount.toString(), account: flow.account },
+        { depositId, amount: amount.toString(), account: flow.account, beneficiary },
       ),
     );
     flow.depositTransaction = transactionHash;
@@ -1042,6 +1162,7 @@ async function depositReserve() {
     flow.depositId = depositId;
     flow.depositAmount = amount.toString();
     flow.depositAccount = flow.account;
+    flow.depositBeneficiary = beneficiary;
     flow.proofCalldata = null;
     flow.proofTransaction = null;
     clearPendingAction(transactionHash);
@@ -1059,6 +1180,7 @@ function selectPilotDeposit() {
   flow.depositId = pilot.depositId;
   flow.depositAmount = pilot.amount;
   flow.depositAccount = pilot.beneficiary;
+  flow.depositBeneficiary = pilot.beneficiary;
   flow.proofCalldata = null;
   flow.proofTransaction = null;
   saveFlow();
@@ -1090,7 +1212,8 @@ async function validateSourceDeposit() {
       && log.topics?.[2]?.toLowerCase() === flow.depositId.toLowerCase(),
   );
   if (!event) throw new Error("Expected ReserveDeposited event was not found");
-  if (wordAddress(event.topics[3])?.toLowerCase() !== flow.depositAccount.toLowerCase()) throw new Error("Deposit beneficiary mismatch");
+  const expectedBeneficiary = flow.depositBeneficiary || flow.depositAccount;
+  if (wordAddress(event.topics[3])?.toLowerCase() !== expectedBeneficiary.toLowerCase()) throw new Error("Deposit beneficiary mismatch");
   if (wordAddress(event.data.slice(2, 66))?.toLowerCase() !== flow.depositAccount.toLowerCase()) throw new Error("Deposit depositor mismatch");
   if (BigInt(`0x${event.data.slice(-64)}`) !== BigInt(flow.depositAmount)) throw new Error("Deposit amount mismatch");
 
@@ -1179,6 +1302,7 @@ function bindActions() {
   byId("start-new-issuer").addEventListener("click", startNewIssuer);
   byId("token-name").addEventListener("input", updateTokenDraft);
   byId("token-symbol").addEventListener("input", updateTokenDraft);
+  byId("reserve-beneficiary").addEventListener("input", render);
   byId("copy-token-address").addEventListener("click", copyTokenAddress);
   byId("create-issuer").addEventListener("click", createIssuer);
   byId("deposit-bond").addEventListener("click", depositBond);

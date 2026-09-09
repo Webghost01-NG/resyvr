@@ -31,6 +31,9 @@ if (!wallet.includes('publicRpc(rpcUrl, "eth_estimateGas"')) throw new Error("Wa
 if (!wallet.includes('publicRpc(networks.destination.rpcUrl, "eth_getLogs"')) throw new Error("Issuer portfolio does not read factory logs");
 if (!wallet.includes("recoverPendingAction")) throw new Error("Wallet flow does not recover pending transactions");
 if (!wallet.includes("recordPendingAction")) throw new Error("Wallet flow does not persist submitted transactions");
+if (!wallet.includes("selectIssuer")) throw new Error("Issuer portfolio cannot reopen an issuer workflow");
+if (!wallet.includes("VERIFIED_DEPOSIT_SELECTOR")) throw new Error("Issuer recovery does not reject consumed deposits");
+if (!definedIds.has("reserve-beneficiary")) throw new Error("Reserve flow has no mint recipient input");
 if (!/^0x[0-9a-f]{40}$/i.test(networks.source.transactionExecutor || "")) {
   throw new Error("Source transaction executor is not a valid address");
 }

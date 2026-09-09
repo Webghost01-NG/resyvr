@@ -252,6 +252,8 @@
               <p>Approves only the entered amount, then locks it for your wallet as the token beneficiary.</p>
               <label class="amount-label" for="reserve-amount">Reserve amount</label>
               <div class="amount-input"><input id="reserve-amount" value="1" inputmode="decimal" /><span>USDC</span></div>
+              <label class="amount-label" for="reserve-beneficiary">Recipient wallet</label>
+              <input class="beneficiary-input mono" id="reserve-beneficiary" placeholder="Connected wallet" autocomplete="off" spellcheck="false" />
               <p class="action-state" id="deposit-state">Activate the issuer before depositing reserves.</p>
               <div class="button-row">
                 <button class="action-button" id="approve-reserve" type="button" disabled>Approve USDC</button>
@@ -332,6 +334,6 @@
 
     <script type="module" src="./motion.js?v=1"></script>
     <script type="module" src="./app.js?v=12"></script>
-    <script type="module" src="./wallet.js?v=17"></script>
+    <script type="module" src="./wallet.js?v=18"></script>
   </body>
 </html>
