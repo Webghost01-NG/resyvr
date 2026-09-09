@@ -29,6 +29,8 @@ if (!wallet.includes("networks.source.transactionExecutor")) throw new Error("Wa
 if (!wallet.includes("SOURCE_EXECUTOR_SELECTOR")) throw new Error("Wallet flow does not verify the controller source executor");
 if (!wallet.includes('publicRpc(rpcUrl, "eth_estimateGas"')) throw new Error("Wallet transactions do not use bounded public-RPC gas estimates");
 if (!wallet.includes('publicRpc(networks.destination.rpcUrl, "eth_getLogs"')) throw new Error("Issuer portfolio does not read factory logs");
+if (!wallet.includes("recoverPendingAction")) throw new Error("Wallet flow does not recover pending transactions");
+if (!wallet.includes("recordPendingAction")) throw new Error("Wallet flow does not persist submitted transactions");
 if (!/^0x[0-9a-f]{40}$/i.test(networks.source.transactionExecutor || "")) {
   throw new Error("Source transaction executor is not a valid address");
 }

@@ -27,6 +27,7 @@ const flow = {
   tokenSymbol: "",
   sourceVault: null,
   sourceVaultTransaction: null,
+  creationTransaction: null,
   sourceExecutor: ZERO_ADDRESS,
   controller: null,
   token: null,
@@ -43,6 +44,7 @@ const flow = {
   depositAccount: null,
   proofCalldata: null,
   proofTransaction: null,
+  pendingAction: null,
 };
 
 let networks;
@@ -83,6 +85,7 @@ function freshIssuerState() {
     tokenSymbol: "",
     sourceVault: null,
     sourceVaultTransaction: null,
+    creationTransaction: null,
     sourceExecutor: ZERO_ADDRESS,
     controller: null,
     token: null,
@@ -99,6 +102,7 @@ function freshIssuerState() {
     depositAccount: null,
     proofCalldata: null,
     proofTransaction: null,
+    pendingAction: null,
   };
 }
 
@@ -293,6 +297,118 @@ async function sendWalletTransaction(chainKey, transaction, effect, onSubmitted 
   if (onSubmitted) onSubmitted(transactionHash);
   const receipt = await waitForReceipt(transactionHash, chainKey);
   return { transactionHash, receipt };
+}
+
+function recordPendingAction(action, chainKey, stateId, message, context = {}) {
+  return (transactionHash) => {
+    flow.pendingAction = { action, chainKey, stateId, transactionHash, account: flow.account, context };
+    saveFlow();
+    setActionState(stateId, message, "waiting", transactionHash, networks[chainKey].explorerUrl);
+    render();
+  };
+}
+
+function clearPendingAction(transactionHash) {
+  if (flow.pendingAction?.transactionHash === transactionHash) {
+    flow.pendingAction = null;
+  }
+}
+
+function createdControllerFromReceipt(receipt) {
+  const event = receipt.logs?.find(
+    (log) => log.address?.toLowerCase() === flow.factory.toLowerCase()
+      && log.topics?.[0]?.toLowerCase() === ISSUER_CREATED_TOPIC,
+  );
+  if (!event?.topics?.[3]) throw new Error("IssuerCreated event was not found in the successful receipt");
+  const controller = wordAddress(event.topics[3]);
+  if (!controller) throw new Error("IssuerCreated returned an invalid controller address");
+  return controller;
+}
+
+async function applyRecoveredAction(pending, receipt) {
+  const { action, transactionHash, context } = pending;
+  if (action === "sourceVault") {
+    if (!receipt.contractAddress) throw new Error("Confirmed vault deployment has no contract address");
+    flow.sourceVault = receipt.contractAddress;
+    flow.sourceVaultTransaction = transactionHash;
+    flow.sourceExecutor = networks.source.transactionExecutor || ZERO_ADDRESS;
+    setActionState("source-vault-state", `Reserve vault recovered: ${shortHex(flow.sourceVault)}`, "success", transactionHash, networks.source.explorerUrl);
+  } else if (action === "createIssuer") {
+    flow.creationTransaction = transactionHash;
+    flow.controller = createdControllerFromReceipt(receipt);
+    await resolveIssuerAddresses();
+    setActionState("create-state", "Issuer creation recovered and confirmed.", "success", transactionHash, networks.destination.explorerUrl);
+    void refreshIssuerPortfolio();
+  } else if (action === "depositBond") {
+    flow.bondTransaction = transactionHash;
+    setActionState("bond-state", "CTC bond deposit recovered. Activate issuance next.", "success", transactionHash, networks.destination.explorerUrl);
+  } else if (action === "activateBond") {
+    flow.activationTransaction = transactionHash;
+    flow.bondActive = true;
+    setActionState("bond-state", "Issuance activation recovered and confirmed.", "success", transactionHash, networks.destination.explorerUrl);
+  } else if (action === "approveReserve") {
+    flow.approvalTransaction = transactionHash;
+    setActionState("deposit-state", "Approval recovered. Deposit the reserve next.", "success", transactionHash, networks.source.explorerUrl);
+  } else if (action === "depositReserve") {
+    flow.depositTransaction = transactionHash;
+    flow.depositBlock = Number(BigInt(receipt.blockNumber));
+    flow.depositId = context.depositId;
+    flow.depositAmount = context.amount;
+    flow.depositAccount = context.account;
+    flow.proofCalldata = null;
+    flow.proofTransaction = null;
+    setActionState("deposit-state", `Reserve deposit recovered in Sepolia block ${flow.depositBlock}.`, "success", transactionHash, networks.source.explorerUrl);
+  } else if (action === "submitProof") {
+    flow.proofTransaction = transactionHash;
+    setActionState("mint-state", "Proof submission recovered and mint confirmed.", "success", transactionHash, networks.destination.explorerUrl);
+    byId("refresh-button").click();
+  }
+  clearPendingAction(transactionHash);
+  saveFlow();
+  render();
+}
+
+async function recoverPendingAction() {
+  const pending = flow.pendingAction;
+  if (!pending?.transactionHash || !pending.chainKey || !pending.stateId) return;
+  const explorerUrl = networks[pending.chainKey].explorerUrl;
+  if (pending.account && flow.account?.toLowerCase() !== pending.account.toLowerCase()) {
+    setActionState(
+      pending.stateId,
+      `Reconnect ${shortHex(pending.account, 6, 4)} to recover its submitted transaction.`,
+      "waiting",
+      pending.transactionHash,
+      explorerUrl,
+    );
+    return;
+  }
+  try {
+    const receipt = await publicRpc(
+      networks[pending.chainKey].rpcUrl,
+      "eth_getTransactionReceipt",
+      [pending.transactionHash],
+    );
+    if (!receipt) {
+      setActionState(pending.stateId, "Submitted transaction is still pending.", "waiting", pending.transactionHash, explorerUrl);
+      return;
+    }
+    if (BigInt(receipt.status || "0x0") !== 1n) {
+      clearPendingAction(pending.transactionHash);
+      saveFlow();
+      setActionState(pending.stateId, "Submitted transaction failed on-chain. It is safe to retry.", "error", pending.transactionHash, explorerUrl);
+      render();
+      return;
+    }
+    await applyRecoveredAction(pending, receipt);
+  } catch (error) {
+    setActionState(
+      pending.stateId,
+      `Could not recover the submitted transaction yet: ${friendlyError(error)}`,
+      "error",
+      pending.transactionHash,
+      explorerUrl,
+    );
+  }
 }
 
 function decodeAbiString(data) {
@@ -534,6 +650,7 @@ function chainLabel(chainId) {
 
 function render() {
   const connected = Boolean(flow.account);
+  const transactionPending = Boolean(flow.pendingAction);
   const walletAccount = byId("wallet-account");
   walletAccount.textContent = connected ? shortHex(flow.account, 6, 4) : "Connect a wallet to begin";
   walletAccount.title = connected ? flow.account : "";
@@ -566,15 +683,15 @@ function render() {
     tokenLink.title = `Open ${flow.token} in the Creditcoin explorer`;
   }
 
-  byId("deploy-source-vault").disabled = !connected || pilotMode || Boolean(flow.sourceVault) || !validTokenDraft();
-  byId("create-issuer").disabled = !connected || !flow.factory || !flow.sourceVault || Boolean(flow.controller);
-  byId("deposit-bond").disabled = !connected || !flow.bondVault || flow.bondActive || Boolean(flow.bondTransaction);
-  byId("activate-bond").disabled = !connected || !flow.bondVault || flow.bondActive || (!flow.bondTransaction && !pilotMode);
-  byId("approve-reserve").disabled = !connected || !flow.controller || !flow.bondActive;
-  byId("deposit-reserve").disabled = !connected || !flow.controller || !flow.bondActive || !flow.approvalTransaction;
+  byId("deploy-source-vault").disabled = transactionPending || !connected || pilotMode || Boolean(flow.sourceVault) || !validTokenDraft();
+  byId("create-issuer").disabled = transactionPending || !connected || !flow.factory || !flow.sourceVault || Boolean(flow.controller);
+  byId("deposit-bond").disabled = transactionPending || !connected || !flow.bondVault || flow.bondActive || Boolean(flow.bondTransaction);
+  byId("activate-bond").disabled = transactionPending || !connected || !flow.bondVault || flow.bondActive || (!flow.bondTransaction && !pilotMode);
+  byId("approve-reserve").disabled = transactionPending || !connected || !flow.controller || !flow.bondActive;
+  byId("deposit-reserve").disabled = transactionPending || !connected || !flow.controller || !flow.bondActive || !flow.approvalTransaction;
   byId("use-pilot-deposit").disabled = !connected || !pilotMode || Boolean(flow.proofTransaction);
   byId("generate-proof").disabled = !flow.depositTransaction || !flow.depositBlock;
-  byId("submit-proof").disabled = !connected || !flow.controller || !flow.proofCalldata;
+  byId("submit-proof").disabled = transactionPending || !connected || !flow.controller || !flow.proofCalldata;
 
   if (flow.sourceVault && !hasFinalActionState("source-vault-state")) {
     setActionState(
@@ -687,22 +804,13 @@ async function deploySourceVault() {
       "source",
       { data },
       `Deploy an isolated ${networks.source.reserveAsset.symbol} reserve vault for ${flow.tokenSymbol}. No tokens move in this transaction.`,
-      (submittedHash) => {
-        flow.sourceVaultTransaction = submittedHash;
-        saveFlow();
-        setActionState(
-          "source-vault-state",
-          "Deployment submitted. Waiting for Sepolia confirmation…",
-          "waiting",
-          submittedHash,
-          networks.source.explorerUrl,
-        );
-      },
+      recordPendingAction("sourceVault", "source", "source-vault-state", "Deployment submitted. Waiting for Sepolia confirmation…"),
     );
     if (!receipt.contractAddress) throw new Error("Successful vault deployment did not return a contract address");
     flow.sourceVault = receipt.contractAddress;
     flow.sourceVaultTransaction = transactionHash;
     flow.sourceExecutor = networks.source.transactionExecutor || ZERO_ADDRESS;
+    clearPendingAction(transactionHash);
     saveFlow();
     setActionState(
       "source-vault-state",
@@ -821,14 +929,12 @@ async function createIssuer() {
       "destination",
       { to: flow.factory, data },
       `Create ${flow.tokenSymbol}. Deploys your issuer controller, token, and CTC bond vault; no CTC value is transferred.`,
+      recordPendingAction("createIssuer", "destination", "create-state", "Issuer creation submitted. Waiting for CC3 confirmation…"),
     );
-    const event = receipt.logs?.find(
-      (log) => log.address?.toLowerCase() === flow.factory.toLowerCase() && log.topics?.[0]?.toLowerCase() === ISSUER_CREATED_TOPIC,
-    );
-    if (!event?.topics?.[3]) throw new Error("IssuerCreated event was not found in the successful receipt");
-    flow.controller = wordAddress(event.topics[3]);
-    if (!flow.controller) throw new Error("IssuerCreated returned an invalid controller address");
+    flow.creationTransaction = transactionHash;
+    flow.controller = createdControllerFromReceipt(receipt);
     await resolveIssuerAddresses();
+    clearPendingAction(transactionHash);
     setActionState("create-state", "Issuer created.", "success", transactionHash, networks.destination.explorerUrl);
     saveFlow();
     void refreshIssuerPortfolio();
@@ -849,8 +955,10 @@ async function depositBond() {
       "destination",
       { to: flow.bondVault, data: "0x741b3c39", value: `0x${BigInt(minimumBondWei).toString(16)}` },
       `Deposit ${formatNative(minimumBondWei)} CTC into the issuer bond vault. This does not activate issuance yet.`,
+      recordPendingAction("depositBond", "destination", "bond-state", "Bond deposit submitted. Waiting for CC3 confirmation…"),
     );
     flow.bondTransaction = transactionHash;
+    clearPendingAction(transactionHash);
     setActionState("bond-state", "CTC bond deposited. Activation remains.", "success", transactionHash, networks.destination.explorerUrl);
     saveFlow();
   } catch (error) {
@@ -869,9 +977,11 @@ async function activateBond() {
       "destination",
       { to: flow.bondVault, data: "0x1de54f6b" },
       "Activate issuance. New valid reserve proofs may mint; the CTC bond cannot be withdrawn while active.",
+      recordPendingAction("activateBond", "destination", "bond-state", "Activation submitted. Waiting for CC3 confirmation…"),
     );
     flow.activationTransaction = transactionHash;
     flow.bondActive = true;
+    clearPendingAction(transactionHash);
     setActionState("bond-state", "Issuance activated.", "success", transactionHash, networks.destination.explorerUrl);
     saveFlow();
   } catch (error) {
@@ -895,8 +1005,10 @@ async function approveReserve() {
       "source",
       { to: networks.source.reserveAsset.address, data: encodeApprove(flow.sourceVault, amount) },
       `Approve the reserve vault to transfer exactly ${byId("reserve-amount").value.trim()} ${networks.source.reserveAsset.symbol}. No tokens move in this transaction.`,
+      recordPendingAction("approveReserve", "source", "deposit-state", "Approval submitted. Waiting for Sepolia confirmation…"),
     );
     flow.approvalTransaction = transactionHash;
+    clearPendingAction(transactionHash);
     setActionState("deposit-state", "Approval confirmed. Reserve deposit remains.", "success", transactionHash, networks.source.explorerUrl);
     saveFlow();
   } catch (error) {
@@ -917,6 +1029,13 @@ async function depositReserve() {
       "source",
       { to: flow.sourceVault, data: encodeDeposit(depositId, flow.account, amount) },
       `Lock ${byId("reserve-amount").value.trim()} ${networks.source.reserveAsset.symbol} in the Sepolia vault for ${shortHex(flow.account)}.`,
+      recordPendingAction(
+        "depositReserve",
+        "source",
+        "deposit-state",
+        "Reserve deposit submitted. Waiting for Sepolia confirmation…",
+        { depositId, amount: amount.toString(), account: flow.account },
+      ),
     );
     flow.depositTransaction = transactionHash;
     flow.depositBlock = Number(BigInt(receipt.blockNumber));
@@ -925,6 +1044,7 @@ async function depositReserve() {
     flow.depositAccount = flow.account;
     flow.proofCalldata = null;
     flow.proofTransaction = null;
+    clearPendingAction(transactionHash);
     saveFlow();
   } catch (error) {
     setActionState("deposit-state", friendlyError(error), "error");
@@ -1031,8 +1151,10 @@ async function submitProof() {
       "destination",
       { to: flow.controller, data: flow.proofCalldata },
       `Submit the Attestcoin proof to ${shortHex(flow.controller)}. Minting occurs only if the controller accepts every field.`,
+      recordPendingAction("submitProof", "destination", "mint-state", "Proof submitted. Waiting for CC3 confirmation…"),
     );
     flow.proofTransaction = transactionHash;
+    clearPendingAction(transactionHash);
     saveFlow();
     setActionState("mint-state", "Proof accepted and mint confirmed.", "success", transactionHash, networks.destination.explorerUrl);
     byId("refresh-button").click();
@@ -1092,10 +1214,12 @@ async function initialize() {
     const accounts = await window.ethereum.request({ method: "eth_accounts" });
     flow.account = accounts[0] || null;
     flow.chainId = Number.parseInt(await window.ethereum.request({ method: "eth_chainId" }), 16);
+    await recoverPendingAction();
     void recoverSourceVaultDeployment();
     void refreshIssuerPortfolio();
     window.ethereum.on?.("accountsChanged", (nextAccounts) => {
       flow.account = nextAccounts[0] || null;
+      void recoverPendingAction();
       void recoverSourceVaultDeployment();
       void refreshIssuerPortfolio();
       render();
