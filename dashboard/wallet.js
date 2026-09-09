@@ -3,9 +3,9 @@ import {
   encodeCreateIssuer,
   encodeDeposit,
   encodeExecuteDeposit,
-  encodeFactoryDeployment,
+  encodeSourceVaultDeployment,
   parseUnits,
-} from "./encoding.mjs?v=10";
+} from "./encoding.mjs?v=11";
 
 const ISSUER_CREATED_TOPIC = "0x75118ee2db244652d7ac3bbe9a9f199941ece831c61580f5a72e4b7fa9ef245a";
 const RESERVE_DEPOSITED_TOPIC = "0x9ade6207680ee84077f86cc08de4f401b88731138ea5b583f09bd7266113453d";
@@ -14,12 +14,20 @@ const TOKEN_SELECTOR = "0xfc0c546a";
 const BOND_VAULT_SELECTOR = "0x990826b3";
 const BOND_ACTIVE_SELECTOR = "0x02fb0c5e";
 const BOND_MINIMUM_SELECTOR = "0xaa7517e1";
-const STORAGE_KEY = "resyvr-issuer-flow-v1";
+const SOURCE_EXECUTOR_SELECTOR = "0xacfb1e26";
+const STORAGE_KEY = "resyvr-issuer-flow-v2";
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 const flow = {
+  mode: "new",
   account: null,
   factory: null,
-  factoryDeploymentTransaction: null,
+  issuerId: null,
+  tokenName: "",
+  tokenSymbol: "",
+  sourceVault: null,
+  sourceVaultTransaction: null,
+  sourceExecutor: ZERO_ADDRESS,
   controller: null,
   token: null,
   bondVault: null,
@@ -40,7 +48,7 @@ const flow = {
 let networks;
 let pilot;
 let issuance;
-let factoryDeployment;
+let sourceVaultDeployment;
 
 function byId(id) {
   const element = document.getElementById(id);
@@ -64,6 +72,43 @@ function randomBytes32() {
   const bytes = new Uint8Array(32);
   crypto.getRandomValues(bytes);
   return `0x${[...bytes].map((byte) => byte.toString(16).padStart(2, "0")).join("")}`;
+}
+
+function freshIssuerState() {
+  return {
+    mode: "new",
+    issuerId: null,
+    tokenName: "",
+    tokenSymbol: "",
+    sourceVault: null,
+    sourceVaultTransaction: null,
+    sourceExecutor: ZERO_ADDRESS,
+    controller: null,
+    token: null,
+    bondVault: null,
+    bondActive: false,
+    minimumBondWei: null,
+    approvalTransaction: null,
+    bondTransaction: null,
+    activationTransaction: null,
+    depositTransaction: null,
+    depositBlock: null,
+    depositId: null,
+    depositAmount: null,
+    depositAccount: null,
+    proofCalldata: null,
+    proofTransaction: null,
+  };
+}
+
+function readTokenDraft() {
+  const tokenName = byId("token-name").value.trim();
+  const tokenSymbol = byId("token-symbol").value.trim().toUpperCase();
+  if (tokenName.length < 3) throw new Error("Enter a token name with at least 3 characters");
+  if (!/^[A-Z][A-Z0-9]{1,10}$/.test(tokenSymbol)) {
+    throw new Error("Use a 2–11 character symbol beginning with a letter");
+  }
+  return { tokenName, tokenSymbol };
 }
 
 function loadSavedFlow() {
@@ -124,15 +169,25 @@ async function fetchJson(path) {
 }
 
 async function publicRpc(rpcUrl, method, params = []) {
-  const response = await fetch(rpcUrl, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
-  });
-  if (!response.ok) throw new Error(`${method} returned HTTP ${response.status}`);
-  const payload = await response.json();
-  if (payload.error) throw new Error(payload.error.message || `${method} failed`);
-  return payload.result;
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), 10_000);
+  try {
+    const response = await fetch(rpcUrl, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
+      signal: controller.signal,
+    });
+    if (!response.ok) throw new Error(`${method} returned HTTP ${response.status}`);
+    const payload = await response.json();
+    if (payload.error) throw new Error(payload.error.message || `${method} failed`);
+    return payload.result;
+  } catch (error) {
+    if (error?.name === "AbortError") throw new Error(`${method} timed out`);
+    throw error;
+  } finally {
+    window.clearTimeout(timeout);
+  }
 }
 
 async function contractCall(rpcUrl, address, data) {
@@ -166,6 +221,8 @@ async function ensureChain(chainKey) {
     if (error?.code !== 4902) throw error;
     await provider.request({ method: "wallet_addEthereumChain", params: [chain] });
   }
+  flow.chainId = Number.parseInt(chain.chainId, 16);
+  render();
 }
 
 async function prepareWalletRequest(chainKey, effect) {
@@ -175,44 +232,130 @@ async function prepareWalletRequest(chainKey, effect) {
   await ensureChain(chainKey);
 }
 
-async function waitForReceipt(transactionHash, timeoutMs = 300_000) {
+async function waitForReceipt(transactionHash, chainKey, timeoutMs = 300_000) {
   const startedAt = Date.now();
+  const rpcUrl = networks[chainKey].rpcUrl;
+  let transientFailures = 0;
   while (Date.now() - startedAt < timeoutMs) {
-    const receipt = await window.ethereum.request({
-      method: "eth_getTransactionReceipt",
-      params: [transactionHash],
-    });
-    if (receipt) {
-      if (BigInt(receipt.status || "0x0") !== 1n) throw new Error(`Transaction ${shortHex(transactionHash)} failed on-chain`);
-      return receipt;
+    try {
+      const receipt = await publicRpc(rpcUrl, "eth_getTransactionReceipt", [transactionHash]);
+      if (receipt) {
+        if (BigInt(receipt.status || "0x0") !== 1n) throw new Error(`Transaction ${shortHex(transactionHash)} failed on-chain`);
+        return receipt;
+      }
+      transientFailures = 0;
+    } catch (error) {
+      if (/failed on-chain/.test(error instanceof Error ? error.message : "")) throw error;
+      transientFailures += 1;
+      if (transientFailures >= 10) {
+        const failure = new Error(`Receipt lookup is temporarily unavailable. Your transaction was submitted as ${shortHex(transactionHash)}; inspect it before retrying.`);
+        failure.transactionHash = transactionHash;
+        failure.explorerUrl = networks[chainKey].explorerUrl;
+        throw failure;
+      }
     }
     await new Promise((resolve) => window.setTimeout(resolve, 3_000));
   }
-  throw new Error(`Timed out waiting for transaction ${shortHex(transactionHash)}`);
+  const timeout = new Error(`Confirmation timed out for ${shortHex(transactionHash)}. Inspect the submitted transaction before retrying.`);
+  timeout.transactionHash = transactionHash;
+  timeout.explorerUrl = networks[chainKey].explorerUrl;
+  throw timeout;
 }
 
-async function sendWalletTransaction(chainKey, transaction, effect) {
+async function sendWalletTransaction(chainKey, transaction, effect, onSubmitted = null) {
   if (!flow.account) throw new Error("Connect MetaMask first");
   await prepareWalletRequest(chainKey, effect);
   const transactionHash = await window.ethereum.request({
     method: "eth_sendTransaction",
     params: [{ from: flow.account, ...transaction }],
   });
-  const receipt = await waitForReceipt(transactionHash);
+  if (onSubmitted) onSubmitted(transactionHash);
+  const receipt = await waitForReceipt(transactionHash, chainKey);
   return { transactionHash, receipt };
+}
+
+async function recoverSourceVaultDeployment() {
+  if (flow.mode !== "new" || !flow.account || !flow.issuerId || flow.sourceVault) return;
+  const rpcUrl = networks.source.rpcUrl;
+  try {
+    let transactionHash = flow.sourceVaultTransaction;
+    if (!transactionHash) {
+      const expectedInput = encodeSourceVaultDeployment(
+        sourceVaultDeployment.creationBytecode,
+        networks.source.reserveAsset.address,
+        flow.issuerId,
+      ).toLowerCase();
+      const latestHex = await publicRpc(rpcUrl, "eth_blockNumber");
+      const latest = Number(BigInt(latestHex));
+      for (let offset = 0; offset < 32 && !transactionHash; offset += 1) {
+        const blockNumber = latest - offset;
+        const block = await publicRpc(rpcUrl, "eth_getBlockByNumber", [`0x${blockNumber.toString(16)}`, true]);
+        const transaction = block?.transactions?.find(
+          (candidate) => candidate.from?.toLowerCase() === flow.account.toLowerCase()
+            && (candidate.input || candidate.data || "").toLowerCase() === expectedInput,
+        );
+        transactionHash = transaction?.hash || null;
+      }
+    }
+    if (!transactionHash) return;
+
+    flow.sourceVaultTransaction = transactionHash;
+    saveFlow();
+    const receipt = await publicRpc(rpcUrl, "eth_getTransactionReceipt", [transactionHash]);
+    if (!receipt) {
+      setActionState(
+        "source-vault-state",
+        "Previous deployment found and still waiting for confirmation.",
+        "waiting",
+        transactionHash,
+        networks.source.explorerUrl,
+      );
+      return;
+    }
+    if (BigInt(receipt.status || "0x0") !== 1n || !receipt.contractAddress) {
+      setActionState(
+        "source-vault-state",
+        "The previous reserve-vault deployment failed on-chain. You can retry safely.",
+        "error",
+        transactionHash,
+        networks.source.explorerUrl,
+      );
+      return;
+    }
+    flow.sourceVault = receipt.contractAddress;
+    flow.sourceExecutor = networks.source.transactionExecutor || ZERO_ADDRESS;
+    saveFlow();
+    setActionState(
+      "source-vault-state",
+      `Recovered confirmed reserve vault: ${shortHex(flow.sourceVault)}`,
+      "success",
+      transactionHash,
+      networks.source.explorerUrl,
+    );
+    render();
+  } catch {
+    // Recovery is best-effort. The normal deployment button remains available.
+  }
 }
 
 async function resolveIssuerAddresses() {
   flow.factory = issuance.factory || flow.factory;
-  flow.controller = issuance.issuerController || flow.controller;
-  flow.token = issuance.token || flow.token;
-  flow.bondVault = issuance.bondVault || flow.bondVault;
+  if (flow.mode === "pilot") {
+    flow.issuerId = pilot.issuerId;
+    flow.tokenName = issuance.tokenName;
+    flow.tokenSymbol = issuance.tokenSymbol;
+    flow.sourceVault = pilot.sourceVault;
+    flow.sourceExecutor = pilot.sourceExecutor;
+    flow.controller = issuance.issuerController;
+    flow.token = issuance.token;
+    flow.bondVault = issuance.bondVault;
+  }
 
-  if (!flow.controller && flow.factory) {
+  if (!flow.controller && flow.factory && flow.issuerId) {
     const result = await contractCall(
       networks.destination.rpcUrl,
       flow.factory,
-      `${ISSUER_LOOKUP_SELECTOR}${pilot.issuerId.slice(2)}`,
+      `${ISSUER_LOOKUP_SELECTOR}${flow.issuerId.slice(2)}`,
     );
     const words = result.slice(2).match(/.{64}/g) || [];
     flow.controller = wordAddress(words[5]);
@@ -221,12 +364,14 @@ async function resolveIssuerAddresses() {
   }
 
   if (flow.controller) {
-    const [tokenResult, bondResult] = await Promise.all([
+    const [tokenResult, bondResult, executorResult] = await Promise.all([
       contractCall(networks.destination.rpcUrl, flow.controller, TOKEN_SELECTOR),
       contractCall(networks.destination.rpcUrl, flow.controller, BOND_VAULT_SELECTOR),
+      contractCall(networks.destination.rpcUrl, flow.controller, SOURCE_EXECUTOR_SELECTOR),
     ]);
     flow.token = wordAddress(tokenResult) || flow.token;
     flow.bondVault = wordAddress(bondResult) || flow.bondVault;
+    flow.sourceExecutor = wordAddress(executorResult) || ZERO_ADDRESS;
   }
   if (flow.bondVault) {
     const [activeResult, minimumResult] = await Promise.all([
@@ -239,35 +384,86 @@ async function resolveIssuerAddresses() {
   saveFlow();
 }
 
+function validTokenDraft() {
+  return byId("token-name").value.trim().length >= 3
+    && /^[A-Za-z][A-Za-z0-9]{1,10}$/.test(byId("token-symbol").value.trim());
+}
+
+function chainLabel(chainId) {
+  if (!chainId || !networks) return "Network changes happen automatically per step";
+  if (Number(chainId) === Number(networks.source.chainId)) return "Ethereum Sepolia · ready for reserve actions";
+  if (Number(chainId) === Number(networks.destination.chainId)) return "Creditcoin CC3 · ready for issuer actions";
+  return `Chain ${Number(chainId)} · Resyvr will switch when required`;
+}
+
 function render() {
   const connected = Boolean(flow.account);
-  byId("wallet-account").textContent = connected ? shortHex(flow.account, 12, 8) : "Not connected";
-  byId("connect-wallet").textContent = connected ? "Wallet connected" : "Connect MetaMask";
+  const walletAccount = byId("wallet-account");
+  walletAccount.textContent = connected ? shortHex(flow.account, 6, 4) : "Connect a wallet to begin";
+  walletAccount.title = connected ? flow.account : "";
+  byId("wallet-network").textContent = connected ? chainLabel(flow.chainId) : "MetaMask · no signature on connection";
+  byId("connect-wallet").textContent = connected ? "Change wallet" : "Connect wallet ↗";
+  byId("wallet-avatar").textContent = connected ? flow.account.slice(2, 4).toUpperCase() : "W";
+  byId("wallet-avatar").style.setProperty("--wallet-hue", connected ? String(Number.parseInt(flow.account.slice(2, 4), 16) + 180) : "250");
 
-  byId("deploy-factory").disabled = !connected || Boolean(flow.factory);
-  byId("create-issuer").disabled = !connected || !flow.factory || Boolean(flow.controller);
-  byId("deposit-bond").disabled = !connected || !flow.bondVault || flow.bondActive;
-  byId("activate-bond").disabled = !connected || !flow.bondVault || flow.bondActive;
+  const pilotMode = flow.mode === "pilot";
+  const tokenNameInput = byId("token-name");
+  const tokenSymbolInput = byId("token-symbol");
+  if (document.activeElement !== tokenNameInput) tokenNameInput.value = flow.tokenName || "";
+  if (document.activeElement !== tokenSymbolInput) tokenSymbolInput.value = flow.tokenSymbol || "";
+  tokenNameInput.disabled = pilotMode || Boolean(flow.sourceVault);
+  tokenSymbolInput.disabled = pilotMode || Boolean(flow.sourceVault);
+  byId("issuer-draft-id").textContent = flow.issuerId ? shortHex(flow.issuerId, 10, 8) : "Generated when you deploy";
+  byId("issuer-draft-id").title = flow.issuerId || "";
+  byId("load-pilot").hidden = pilotMode;
+  byId("start-new-issuer").hidden = !pilotMode && !flow.sourceVault;
+  byId("use-pilot-deposit").hidden = !pilotMode;
+
+  const tokenResult = byId("token-result");
+  tokenResult.hidden = !flow.token;
+  if (flow.token) {
+    byId("token-result-name").textContent = flow.tokenName || "Issuer token";
+    byId("token-result-symbol").textContent = flow.tokenSymbol ? `(${flow.tokenSymbol})` : "";
+    const tokenLink = byId("token-address-link");
+    tokenLink.textContent = flow.token;
+    tokenLink.href = `${networks.destination.explorerUrl}/token/${flow.token}`;
+    tokenLink.title = `Open ${flow.token} in the Creditcoin explorer`;
+  }
+
+  byId("deploy-source-vault").disabled = !connected || pilotMode || Boolean(flow.sourceVault) || !validTokenDraft();
+  byId("create-issuer").disabled = !connected || !flow.factory || !flow.sourceVault || Boolean(flow.controller);
+  byId("deposit-bond").disabled = !connected || !flow.bondVault || flow.bondActive || Boolean(flow.bondTransaction);
+  byId("activate-bond").disabled = !connected || !flow.bondVault || flow.bondActive || (!flow.bondTransaction && !pilotMode);
   byId("approve-reserve").disabled = !connected || !flow.controller || !flow.bondActive;
-  byId("deposit-reserve").disabled = !connected || !flow.controller || !flow.bondActive;
-  byId("use-pilot-deposit").disabled = !connected || !flow.controller || !flow.bondActive || Boolean(flow.proofTransaction);
+  byId("deposit-reserve").disabled = !connected || !flow.controller || !flow.bondActive || !flow.approvalTransaction;
+  byId("use-pilot-deposit").disabled = !connected || !pilotMode || Boolean(flow.proofTransaction);
   byId("generate-proof").disabled = !flow.depositTransaction || !flow.depositBlock;
   byId("submit-proof").disabled = !connected || !flow.controller || !flow.proofCalldata;
 
-  if (flow.controller) {
-    if (!hasFinalActionState("create-state")) {
-      setActionState("create-state", `Issuer controller ready: ${shortHex(flow.controller)}`, "success");
-    }
-  } else if (flow.factory && !hasFinalActionState("create-state")) {
-    setActionState("create-state", `Factory ready: ${shortHex(flow.factory)}. Wallet signature required.`, "waiting");
-  } else if (connected && !hasFinalActionState("create-state")) {
-    setActionState("create-state", "Deploy the audited factory bytecode on Creditcoin CC3.", "waiting");
+  if (flow.sourceVault && !hasFinalActionState("source-vault-state")) {
+    setActionState(
+      "source-vault-state",
+      `${pilotMode ? "Pilot" : "Your"} vault is ready: ${shortHex(flow.sourceVault)}`,
+      "success",
+      flow.sourceVaultTransaction,
+      networks.source.explorerUrl,
+    );
+  } else if (connected && !validTokenDraft() && !hasFinalActionState("source-vault-state")) {
+    setActionState("source-vault-state", "Enter a token name and 2–11 character symbol.");
+  } else if (connected && !hasFinalActionState("source-vault-state")) {
+    setActionState("source-vault-state", "Ready to create your isolated reserve vault on Sepolia.");
+  }
+
+  if (flow.controller && !hasFinalActionState("create-state")) {
+    setActionState("create-state", `Token system ready: ${shortHex(flow.controller)}`, "success");
+  } else if (flow.sourceVault && !hasFinalActionState("create-state")) {
+    setActionState("create-state", "Reserve vault confirmed. Create the token system on Creditcoin CC3.");
   }
   if (flow.bondVault && !hasFinalActionState("bond-state")) {
     const message = flow.bondActive
       ? `Bond active. Vault: ${shortHex(flow.bondVault)}`
       : flow.bondTransaction
-        ? "Bond deposit confirmed. Activation signature remains."
+        ? "Bond deposit confirmed. Activate issuance next."
         : `Bond vault ready: ${shortHex(flow.bondVault)}`;
     setActionState("bond-state", message, flow.bondActive ? "success" : "waiting");
   }
@@ -279,8 +475,8 @@ function render() {
       flow.depositTransaction,
       networks.source.explorerUrl,
     );
-  } else if (connected && flow.controller && !hasFinalActionState("deposit-state")) {
-    setActionState("deposit-state", "Enter an amount. Approval and deposit are separate Sepolia signatures.");
+  } else if (connected && flow.controller && flow.bondActive && !hasFinalActionState("deposit-state")) {
+    setActionState("deposit-state", flow.approvalTransaction ? "Approval confirmed. Deposit the reserve next." : "Enter an amount, then approve the exact USDC transfer.");
   }
   if (flow.proofCalldata && !hasFinalActionState("proof-generation-state")) {
     setActionState("proof-generation-state", "Proof is ready and validated for submission.", "success");
@@ -299,35 +495,173 @@ function render() {
 async function connectWallet() {
   try {
     if (!window.ethereum) throw new Error("MetaMask was not detected in this browser");
-    byId("signature-effect").textContent = "Connect MetaMask. This requests account access only; no transaction or message signature.";
+    byId("signature-effect").textContent = flow.account
+      ? "Choose the account that will administer this issuer. No transaction or message signature is requested."
+      : "Connect MetaMask. This requests account access only; no transaction or message signature.";
     await nextPaint();
-    const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+    if (flow.account) {
+      await window.ethereum.request({
+        method: "wallet_requestPermissions",
+        params: [{ eth_accounts: {} }],
+      });
+    }
+    const accounts = await window.ethereum.request({ method: flow.account ? "eth_accounts" : "eth_requestAccounts" });
     flow.account = accounts[0] || null;
+    flow.chainId = Number.parseInt(await window.ethereum.request({ method: "eth_chainId" }), 16);
     render();
   } catch (error) {
     byId("signature-effect").textContent = friendlyError(error);
   }
 }
 
-async function deployFactory() {
-  const button = byId("deploy-factory");
+function resetDisplayedFlow() {
+  const states = {
+    "source-vault-state": "Connect your wallet and define the token.",
+    "create-state": "A confirmed Sepolia reserve vault is required.",
+    "bond-state": "Create the token system first.",
+    "deposit-state": "Activate the issuer before depositing reserves.",
+    "proof-generation-state": "A successful reserve deposit is required.",
+    "mint-state": "A generated proof is required.",
+  };
+  for (const [id, message] of Object.entries(states)) {
+    const element = byId(id);
+    element.replaceChildren(document.createTextNode(message));
+    delete element.dataset.state;
+  }
+}
+
+async function deploySourceVault() {
+  const button = byId("deploy-source-vault");
   button.disabled = true;
   try {
-    setActionState("create-state", "Waiting for the CC3 factory-deployment signature…");
-    const { transactionHash, receipt } = await sendWalletTransaction(
-      "destination",
-      { data: encodeFactoryDeployment(factoryDeployment.creationBytecode, issuance.minimumBondWei) },
-      `Deploy the Resyvr issuer factory with an immutable ${formatNative(issuance.minimumBondWei)} CTC minimum bond.`,
-    );
-    if (!receipt.contractAddress) throw new Error("Successful deployment receipt did not contain a contract address");
-    flow.factory = receipt.contractAddress;
-    flow.factoryDeploymentTransaction = transactionHash;
+    const { tokenName, tokenSymbol } = readTokenDraft();
+    flow.tokenName = tokenName;
+    flow.tokenSymbol = tokenSymbol;
+    flow.issuerId ||= randomBytes32();
     saveFlow();
-    setActionState("create-state", `Factory deployed: ${shortHex(flow.factory)}. Create the issuer next.`, "success", transactionHash, networks.destination.explorerUrl);
+    render();
+    setActionState("source-vault-state", "Waiting for the Sepolia deployment signature…");
+    const data = encodeSourceVaultDeployment(
+      sourceVaultDeployment.creationBytecode,
+      networks.source.reserveAsset.address,
+      flow.issuerId,
+    );
+    const { transactionHash, receipt } = await sendWalletTransaction(
+      "source",
+      { data },
+      `Deploy an isolated ${networks.source.reserveAsset.symbol} reserve vault for ${flow.tokenSymbol}. No tokens move in this transaction.`,
+      (submittedHash) => {
+        flow.sourceVaultTransaction = submittedHash;
+        saveFlow();
+        setActionState(
+          "source-vault-state",
+          "Deployment submitted. Waiting for Sepolia confirmation…",
+          "waiting",
+          submittedHash,
+          networks.source.explorerUrl,
+        );
+      },
+    );
+    if (!receipt.contractAddress) throw new Error("Successful vault deployment did not return a contract address");
+    flow.sourceVault = receipt.contractAddress;
+    flow.sourceVaultTransaction = transactionHash;
+    flow.sourceExecutor = networks.source.transactionExecutor || ZERO_ADDRESS;
+    saveFlow();
+    setActionState(
+      "source-vault-state",
+      `Reserve vault deployed: ${shortHex(flow.sourceVault)}`,
+      "success",
+      transactionHash,
+      networks.source.explorerUrl,
+    );
   } catch (error) {
-    setActionState("create-state", friendlyError(error), "error");
+    setActionState(
+      "source-vault-state",
+      friendlyError(error),
+      "error",
+      error?.transactionHash || flow.sourceVaultTransaction,
+      error?.explorerUrl || networks.source.explorerUrl,
+    );
   } finally {
     render();
+  }
+}
+
+async function loadPilotIssuer() {
+  resetDisplayedFlow();
+  Object.assign(flow, freshIssuerState(), {
+    account: flow.account,
+    chainId: flow.chainId,
+    factory: issuance.factory,
+    mode: "pilot",
+    issuerId: pilot.issuerId,
+    tokenName: issuance.tokenName,
+    tokenSymbol: issuance.tokenSymbol,
+    sourceVault: pilot.sourceVault,
+    sourceExecutor: pilot.sourceExecutor,
+    sourceVaultTransaction: pilot.vaultDeploymentTransactionHash || null,
+    controller: issuance.issuerController,
+    token: issuance.token,
+    bondVault: issuance.bondVault,
+    bondActive: Boolean(issuance.bondActivation?.transactionHash),
+    minimumBondWei: issuance.minimumBondWei,
+    bondTransaction: issuance.bondDeposit?.transactionHash || null,
+    activationTransaction: issuance.bondActivation?.transactionHash || null,
+    depositTransaction: pilot.depositTransactionHash,
+    depositBlock: pilot.depositBlockNumber,
+    depositId: pilot.depositId,
+    depositAmount: pilot.amount,
+    depositAccount: pilot.beneficiary,
+    proofTransaction: issuance.proofSubmission?.transactionHash || null,
+  });
+  try {
+    await resolveIssuerAddresses();
+  } catch (error) {
+    byId("signature-effect").textContent = `Pilot loaded from tracked evidence. Live refresh failed: ${friendlyError(error)}`;
+  }
+  saveFlow();
+  if (!byId("signature-effect").textContent.startsWith("Pilot loaded")) {
+    byId("signature-effect").textContent = "Completed pilot loaded. Explorer evidence is available without signing.";
+  }
+  render();
+}
+
+function startNewIssuer() {
+  const account = flow.account;
+  const chainId = flow.chainId;
+  resetDisplayedFlow();
+  Object.assign(flow, freshIssuerState(), {
+    account,
+    chainId,
+    factory: issuance.factory,
+    sourceExecutor: networks.source.transactionExecutor || ZERO_ADDRESS,
+  });
+  saveFlow();
+  byId("signature-effect").textContent = "New issuer ready. Define the token, then deploy its Sepolia reserve vault.";
+  render();
+}
+
+function updateTokenDraft(event) {
+  if (flow.sourceVault || flow.mode === "pilot") return;
+  if (event.target.id === "token-symbol") {
+    event.target.value = event.target.value.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+  }
+  flow.tokenName = byId("token-name").value;
+  flow.tokenSymbol = byId("token-symbol").value;
+  render();
+}
+
+async function copyTokenAddress() {
+  if (!flow.token) return;
+  const button = byId("copy-token-address");
+  try {
+    await navigator.clipboard.writeText(flow.token);
+    button.textContent = "Address copied";
+    window.setTimeout(() => {
+      button.textContent = "Copy address";
+    }, 1_800);
+  } catch {
+    button.textContent = "Copy failed";
   }
 }
 
@@ -336,20 +670,20 @@ async function createIssuer() {
   button.disabled = true;
   try {
     const data = encodeCreateIssuer({
-      issuerId: pilot.issuerId,
+      issuerId: flow.issuerId,
       sourceChainKey: networks.source.attestcoinChainKey,
-      sourceVault: pilot.sourceVault,
-      sourceExecutor: pilot.sourceExecutor,
+      sourceVault: flow.sourceVault,
+      sourceExecutor: flow.sourceExecutor || ZERO_ADDRESS,
       reserveAsset: networks.source.reserveAsset.address,
       decimals: networks.source.reserveAsset.decimals,
-      tokenName: issuance.tokenName,
-      tokenSymbol: issuance.tokenSymbol,
+      tokenName: flow.tokenName,
+      tokenSymbol: flow.tokenSymbol,
     });
     setActionState("create-state", "Waiting for the CC3 wallet signature…");
     const { transactionHash, receipt } = await sendWalletTransaction(
       "destination",
       { to: flow.factory, data },
-      `Create ${issuance.tokenSymbol}. Deploys an issuer controller, token, and CTC bond vault; no CTC value is transferred.`,
+      `Create ${flow.tokenSymbol}. Deploys your issuer controller, token, and CTC bond vault; no CTC value is transferred.`,
     );
     const event = receipt.logs?.find(
       (log) => log.address?.toLowerCase() === flow.factory.toLowerCase() && log.topics?.[0]?.toLowerCase() === ISSUER_CREATED_TOPIC,
@@ -421,7 +755,7 @@ async function approveReserve() {
     setActionState("deposit-state", "Waiting for the Sepolia approval signature…");
     const { transactionHash } = await sendWalletTransaction(
       "source",
-      { to: networks.source.reserveAsset.address, data: encodeApprove(pilot.sourceVault, amount) },
+      { to: networks.source.reserveAsset.address, data: encodeApprove(flow.sourceVault, amount) },
       `Approve the reserve vault to transfer exactly ${byId("reserve-amount").value.trim()} ${networks.source.reserveAsset.symbol}. No tokens move in this transaction.`,
     );
     flow.approvalTransaction = transactionHash;
@@ -443,7 +777,7 @@ async function depositReserve() {
     setActionState("deposit-state", "Waiting for the Sepolia reserve-deposit signature…");
     const { transactionHash, receipt } = await sendWalletTransaction(
       "source",
-      { to: pilot.sourceVault, data: encodeDeposit(depositId, flow.account, amount) },
+      { to: flow.sourceVault, data: encodeDeposit(depositId, flow.account, amount) },
       `Lock ${byId("reserve-amount").value.trim()} ${networks.source.reserveAsset.symbol} in the Sepolia vault for ${shortHex(flow.account)}.`,
     );
     flow.depositTransaction = transactionHash;
@@ -490,19 +824,29 @@ async function validateSourceDeposit() {
     publicRpc(networks.source.rpcUrl, "eth_getTransactionByHash", [flow.depositTransaction]),
   ]);
   if (!receipt || !transaction || BigInt(receipt.status || "0x0") !== 1n) throw new Error("Source deposit receipt is missing or failed");
-  const allowedTargets = [pilot.sourceVault, pilot.sourceExecutor].map((value) => value.toLowerCase());
-  if (!allowedTargets.includes(transaction.to?.toLowerCase())) throw new Error("Source transaction target is not configured");
   if (transaction.from?.toLowerCase() !== flow.depositAccount?.toLowerCase()) throw new Error("Source transaction sender changed");
   const event = receipt.logs?.find(
-    (log) => log.address?.toLowerCase() === pilot.sourceVault.toLowerCase()
+    (log) => log.address?.toLowerCase() === flow.sourceVault.toLowerCase()
       && log.topics?.[0]?.toLowerCase() === RESERVE_DEPOSITED_TOPIC
-      && log.topics?.[1]?.toLowerCase() === pilot.issuerId.toLowerCase()
+      && log.topics?.[1]?.toLowerCase() === flow.issuerId.toLowerCase()
       && log.topics?.[2]?.toLowerCase() === flow.depositId.toLowerCase(),
   );
   if (!event) throw new Error("Expected ReserveDeposited event was not found");
   if (wordAddress(event.topics[3])?.toLowerCase() !== flow.depositAccount.toLowerCase()) throw new Error("Deposit beneficiary mismatch");
   if (wordAddress(event.data.slice(2, 66))?.toLowerCase() !== flow.depositAccount.toLowerCase()) throw new Error("Deposit depositor mismatch");
   if (BigInt(`0x${event.data.slice(-64)}`) !== BigInt(flow.depositAmount)) throw new Error("Deposit amount mismatch");
+
+  const transactionTarget = transaction.to?.toLowerCase();
+  const directDeposit = transactionTarget === flow.sourceVault.toLowerCase();
+  const routedDeposit = flow.sourceExecutor !== ZERO_ADDRESS
+    && transactionTarget === flow.sourceExecutor.toLowerCase();
+  if (!directDeposit && !routedDeposit) {
+    const actualTarget = transaction.to ? shortHex(transaction.to) : "contract creation";
+    if (flow.sourceExecutor === ZERO_ADDRESS) {
+      throw new Error(`This issuer predates the MetaMask route fix. Its deposit used ${actualTarget}, but its immutable controller only accepts direct deposits. Start a new issuer; new issuers accept both paths.`);
+    }
+    throw new Error(`Wallet routed the deposit through unsupported executor ${actualTarget}. Start a new issuer only after the configured executor is updated.`);
+  }
 }
 
 async function generateProof() {
@@ -570,7 +914,12 @@ function formatNative(value) {
 
 function bindActions() {
   byId("connect-wallet").addEventListener("click", connectWallet);
-  byId("deploy-factory").addEventListener("click", deployFactory);
+  byId("deploy-source-vault").addEventListener("click", deploySourceVault);
+  byId("load-pilot").addEventListener("click", loadPilotIssuer);
+  byId("start-new-issuer").addEventListener("click", startNewIssuer);
+  byId("token-name").addEventListener("input", updateTokenDraft);
+  byId("token-symbol").addEventListener("input", updateTokenDraft);
+  byId("copy-token-address").addEventListener("click", copyTokenAddress);
   byId("create-issuer").addEventListener("click", createIssuer);
   byId("deposit-bond").addEventListener("click", depositBond);
   byId("activate-bond").addEventListener("click", activateBond);
@@ -587,24 +936,34 @@ async function initialize() {
     localStorage.removeItem(STORAGE_KEY);
   }
   loadSavedFlow();
-  [networks, pilot, issuance, factoryDeployment] = await Promise.all([
+  [networks, pilot, issuance, sourceVaultDeployment] = await Promise.all([
     fetchJson("../config/networks.json"),
     fetchJson("../config/pilot.json"),
     fetchJson("../config/issuance.json"),
-    fetchJson("../config/factory-deployment.json"),
+    fetchJson("../config/source-vault-deployment.json"),
   ]);
+  flow.factory ||= issuance.factory;
+  if (flow.mode === "new" && !flow.controller && flow.sourceExecutor === ZERO_ADDRESS) {
+    flow.sourceExecutor = networks.source.transactionExecutor || ZERO_ADDRESS;
+  }
   await resolveIssuerAddresses();
-  if (search.get("pilot") === "1") selectPilotDeposit();
+  if (search.get("pilot") === "1") await loadPilotIssuer();
   bindActions();
 
   if (window.ethereum) {
     const accounts = await window.ethereum.request({ method: "eth_accounts" });
     flow.account = accounts[0] || null;
+    flow.chainId = Number.parseInt(await window.ethereum.request({ method: "eth_chainId" }), 16);
+    void recoverSourceVaultDeployment();
     window.ethereum.on?.("accountsChanged", (nextAccounts) => {
       flow.account = nextAccounts[0] || null;
+      void recoverSourceVaultDeployment();
       render();
     });
-    window.ethereum.on?.("chainChanged", () => render());
+    window.ethereum.on?.("chainChanged", (nextChainId) => {
+      flow.chainId = Number.parseInt(nextChainId, 16);
+      render();
+    });
   } else {
     byId("connect-wallet").disabled = true;
     byId("signature-effect").textContent = "MetaMask was not detected. Live read-only evidence remains available.";

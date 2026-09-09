@@ -29,6 +29,10 @@
   box-sizing: border-box;
 }
 
+html {
+  scroll-padding-top: 90px;
+}
+
 body {
   min-width: 320px;
   margin: 0;
@@ -118,12 +122,18 @@ a {
 }
 
 .site-header {
+  position: sticky;
+  top: 0;
   display: flex;
   z-index: 20;
   align-items: center;
   justify-content: space-between;
   min-height: 90px;
+  padding-inline: max(32px, calc((100vw - 1240px) / 2));
   border-bottom: 1px solid var(--line);
+  background: rgba(8, 9, 20, 0.82);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  backdrop-filter: blur(18px) saturate(140%);
 }
 
 .brand {
@@ -640,12 +650,12 @@ h1 em {
 }
 
 .launch-section {
-  width: 100%;
   border-top: 0;
   background: var(--paper);
   box-shadow: 0 0 0 100vmax var(--paper);
   clip-path: inset(0 -100vmax);
   color: #11121a;
+  padding-top: clamp(82px, 8vw, 118px);
 }
 
 .metric-section::before,
@@ -985,26 +995,35 @@ dd {
 }
 
 .launch-section h2 {
-  font-size: clamp(3.5rem, 5.4vw, 6rem);
+  max-width: 850px;
+  font-size: clamp(3.35rem, 4.65vw, 4.9rem);
+  line-height: 0.95;
 }
 
-.launch-section .section-heading {
-  display: block;
-  margin-bottom: 42px;
+.launch-section .launch-heading {
+  grid-template-columns: minmax(0, 1.5fr) minmax(260px, 0.5fr);
+  align-items: end;
+  margin-bottom: 54px;
 }
 
 .launch-section .source-note {
-  max-width: 500px;
-  margin-top: 22px;
+  max-width: 360px;
   color: #6f7180;
   text-align: left;
 }
 
 .wallet-bar,
+.asset-builder,
 .signature-preview {
   border: 1px solid rgba(17, 18, 26, 0.14);
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.58);
+}
+
+.issuer-console {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 56px;
 }
 
 .wallet-bar {
@@ -1012,13 +1031,153 @@ dd {
   align-items: center;
   justify-content: space-between;
   gap: 18px;
-  margin-top: 46px;
   padding: 16px;
+}
+
+.wallet-identity {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 13px;
+}
+
+.wallet-avatar {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid rgba(101, 84, 232, 0.22);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 68% 26%, rgba(90, 233, 228, 0.75), transparent 16%),
+    linear-gradient(145deg, hsl(var(--wallet-hue, 250) 78% 62%), #1a1c2c);
+  color: #fff;
+  font: 600 0.67rem "Space Grotesk", sans-serif;
 }
 
 .wallet-account {
   margin: 5px 0 0;
-  font-size: 0.65rem;
+  overflow: hidden;
+  font-size: 0.72rem;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wallet-network {
+  margin: 4px 0 0;
+  color: #7d7f8d;
+  font-size: 0.62rem;
+}
+
+.asset-builder {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.85fr) minmax(360px, 1.15fr) auto;
+  gap: 28px;
+  align-items: end;
+  padding: 22px;
+}
+
+.asset-builder-copy h3 {
+  margin: 8px 0;
+  font: 600 1.25rem "Space Grotesk", sans-serif;
+  letter-spacing: -0.035em;
+}
+
+.asset-builder-copy > p:last-child {
+  max-width: 370px;
+  margin: 0;
+  color: #747684;
+  font-size: 0.68rem;
+  line-height: 1.5;
+}
+
+.asset-fields {
+  display: grid;
+  grid-template-columns: minmax(190px, 1fr) minmax(100px, 0.42fr);
+  gap: 10px;
+}
+
+.asset-fields label {
+  color: #777987;
+  font: 0.55rem "IBM Plex Mono", monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.asset-fields input {
+  width: 100%;
+  margin-top: 8px;
+  padding: 12px 13px;
+  border: 1px solid rgba(17, 18, 26, 0.16);
+  border-radius: 12px;
+  outline: 0;
+  background: rgba(255, 255, 255, 0.62);
+  color: #171824;
+  font: 500 0.73rem "Inter", sans-serif;
+  text-transform: none;
+}
+
+.asset-fields input:focus {
+  border-color: #6554e8;
+  box-shadow: 0 0 0 3px rgba(101, 84, 232, 0.08);
+}
+
+.asset-fields label:last-child input {
+  text-transform: uppercase;
+}
+
+.asset-fields input:disabled {
+  color: #737582;
+  cursor: not-allowed;
+}
+
+.asset-builder-actions {
+  display: grid;
+  min-width: 190px;
+  gap: 9px;
+  justify-items: end;
+}
+
+.draft-id {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  text-align: right;
+}
+
+.draft-id span {
+  color: #858794;
+  font: 0.52rem "IBM Plex Mono", monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.draft-id strong {
+  max-width: 210px;
+  overflow: hidden;
+  color: #525463;
+  font-size: 0.58rem;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.quiet-button {
+  padding: 0;
+  border: 0;
+  border-bottom: 1px solid rgba(17, 18, 26, 0.28);
+  background: transparent;
+  color: #4e5060;
+  cursor: pointer;
+  font: 600 0.62rem "Inter", sans-serif;
+}
+
+.quiet-button:hover,
+.quiet-button:focus-visible {
+  border-color: #6554e8;
+  color: #6554e8;
 }
 
 .primary-button,
@@ -1061,6 +1220,12 @@ dd {
   color: #6554e8;
 }
 
+.action-button.secondary:disabled {
+  border-color: rgba(17, 18, 26, 0.1);
+  background: rgba(17, 18, 26, 0.04);
+  color: #a4a5ad;
+}
+
 .signature-preview {
   display: grid;
   grid-template-columns: auto 1fr;
@@ -1081,10 +1246,72 @@ dd {
   line-height: 1.45;
 }
 
+.token-result {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 15px;
+  align-items: center;
+  margin-top: 10px;
+  padding: 17px;
+  border: 1px solid rgba(8, 125, 114, 0.22);
+  border-radius: 16px;
+  background: rgba(8, 125, 114, 0.06);
+}
+
+.token-result[hidden] {
+  display: none;
+}
+
+.token-result-mark {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: 13px;
+  background: #087d72;
+  color: #fff;
+  font: 700 0.8rem "Space Grotesk", sans-serif;
+}
+
+.token-result-copy {
+  min-width: 0;
+}
+
+.token-result-copy h3 {
+  margin: 3px 0 4px;
+  color: #171824;
+  font: 600 1rem "Space Grotesk", sans-serif;
+}
+
+.token-result-copy h3 small {
+  color: #087d72;
+  font: 600 0.65rem "IBM Plex Mono", monospace;
+}
+
+.token-address {
+  display: block;
+  overflow: hidden;
+  color: #087d72;
+  font-size: 0.64rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.token-result-copy > p:last-child {
+  margin: 5px 0 0;
+  color: #686a79;
+  font-size: 0.62rem;
+  line-height: 1.45;
+}
+
+.copy-token-button {
+  white-space: nowrap;
+}
+
 .launch-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  column-gap: 42px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  column-gap: 30px;
   gap: 0;
   margin: 0;
   padding: 0;
@@ -1109,10 +1336,6 @@ dd {
 
 .launch-card:last-child {
   padding-bottom: 0;
-}
-
-.launch-card.final-step {
-  grid-column: 1 / -1;
 }
 
 .launch-number {
@@ -1405,8 +1628,7 @@ body[data-state="waiting"] .state-icon {
   }
 
   .launch-grid {
-    grid-template-columns: 1fr;
-    max-width: 820px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .launch-card.final-step {
@@ -1415,6 +1637,25 @@ body[data-state="waiting"] .state-icon {
 
   .configuration-grid {
     grid-template-columns: 1fr;
+  }
+
+  .asset-builder {
+    grid-template-columns: minmax(240px, 0.8fr) minmax(0, 1.2fr);
+  }
+
+  .asset-builder-actions {
+    grid-column: 1 / -1;
+    grid-template-columns: 1fr auto;
+    align-items: end;
+    justify-items: start;
+  }
+
+  .asset-builder-actions .quiet-button {
+    justify-self: end;
+  }
+
+  .draft-id {
+    text-align: left;
   }
 
   .boundary-card {
@@ -1429,12 +1670,17 @@ body[data-state="waiting"] .state-icon {
 }
 
 @media (max-width: 800px) {
+  html {
+    scroll-padding-top: 76px;
+  }
+
   .shell {
     width: min(100% - 38px, 650px);
   }
 
   .site-header {
     min-height: 76px;
+    padding-inline: 19px;
   }
 
   nav {
@@ -1464,6 +1710,15 @@ body[data-state="waiting"] .state-icon {
     text-align: left;
   }
 
+  .launch-grid,
+  .asset-builder {
+    grid-template-columns: 1fr;
+  }
+
+  .asset-builder-actions {
+    grid-column: auto;
+  }
+
   .configuration-grid {
     min-width: 0;
   }
@@ -1476,6 +1731,19 @@ body[data-state="waiting"] .state-icon {
 
   .brand {
     font-size: 0.74rem;
+  }
+
+  .site-header {
+    padding-inline: 14px;
+  }
+
+  .token-result {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .copy-token-button {
+    grid-column: 2;
+    justify-self: start;
   }
 
   .network-pill {

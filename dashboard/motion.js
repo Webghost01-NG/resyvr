@@ -1,4 +1,10 @@
 const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+const initialAnchor = window.location.hash ? document.querySelector(window.location.hash) : null;
+
+if (initialAnchor) {
+  requestAnimationFrame(() => requestAnimationFrame(() => initialAnchor.scrollIntoView()));
+}
+
 const revealTargets = document.querySelectorAll([
   ".hero-copy-block",
   ".proof-visual",
@@ -6,6 +12,7 @@ const revealTargets = document.querySelectorAll([
   ".metrics",
   ".proof-card",
   ".wallet-bar",
+  ".asset-builder",
   ".signature-preview",
   ".launch-card",
   ".configuration-grid",

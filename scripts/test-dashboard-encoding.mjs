@@ -7,6 +7,7 @@ import {
   encodeDeposit,
   encodeExecuteDeposit,
   encodeFactoryDeployment,
+  encodeSourceVaultDeployment,
   parseUnits,
 } from "../dashboard/encoding.mjs";
 
@@ -15,6 +16,15 @@ assert.equal(
   encodeFactoryDeployment(sampleBytecode, 1_000_000_000_000_000_000n),
   `${sampleBytecode}${AbiCoder.defaultAbiCoder().encode(["uint256"], [1_000_000_000_000_000_000n]).slice(2)}`,
   "factory initcode differs from ethers constructor encoding",
+);
+
+assert.equal(
+  encodeSourceVaultDeployment(sampleBytecode, `0x${"22".repeat(20)}`, `0x${"11".repeat(32)}`),
+  `${sampleBytecode}${AbiCoder.defaultAbiCoder().encode(
+    ["address", "bytes32"],
+    [`0x${"22".repeat(20)}`, `0x${"11".repeat(32)}`],
+  ).slice(2)}`,
+  "source vault initcode differs from ethers constructor encoding",
 );
 
 const issuerParameters = {

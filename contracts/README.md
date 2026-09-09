@@ -68,9 +68,17 @@ withdrawn; the administrator must first deactivate issuance, which immediately
 blocks new proof-backed minting. The MVP has no slashing path and makes no USD
 claim about the bond's value.
 
-The browser launchpad deploys the exact `IssuerFactory` creation bytecode stored
-in `config/factory-deployment.json`. Regenerate that file from the Foundry
-artifact with `npm run deployment:prepare`; its bytecode hash makes the wallet
-payload reviewable. After the pilot transactions confirm,
+The browser launchpad creates issuers through the shared `IssuerFactory`
+recorded in `config/issuance.json`. Each new issuer first deploys its own Sepolia
+`SourceReserveVault` using the creation bytecode stored in
+`config/source-vault-deployment.json`, with the configured reserve asset and a
+new issuer ID as constructor arguments. The subsequent factory call binds that
+vault to the new controller, token, and bond vault.
+
+`npm run deployment:prepare` regenerates both the source-vault bytecode file and
+the reusable factory artifact in `config/factory-deployment.json` from Foundry
+output. Their bytecode hashes make deployment payloads reviewable. Deploying a
+factory is a separate setup operation; new issuers use the shared deployment.
+After the pilot transactions confirm,
 `npm run deployment:capture` discovers them from the public explorer and writes
 their addresses, blocks, gas, and links to `config/issuance.json`.
