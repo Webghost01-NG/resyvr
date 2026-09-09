@@ -27,3 +27,6 @@ in [`../docs/deployments/sepolia.json`](../docs/deployments/sepolia.json).
 proof to the configured source chain, vault, optional smart-account executor,
 issuer, depositor, beneficiary, amount, deposit ID, and successful receipt. It
 records verified reserve state and rejects both query and deposit-ID replays.
+The live CC3 deployment, proof receipt, resulting state, and replay rejection
+are recorded in
+[`../docs/deployments/creditcoin.json`](../docs/deployments/creditcoin.json).
