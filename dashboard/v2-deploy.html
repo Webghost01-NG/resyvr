@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0b0d16" />
+    <title>Resyvr V2 deployment</title>
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./v2-deploy.css" />
+  </head>
+  <body>
+    <main>
+      <header>
+        <a class="brand" href="./"><span>R</span> RESYVR</a>
+        <p>V2 FACTORY DEPLOYMENT</p>
+      </header>
+
+      <section class="intro">
+        <p class="eyebrow">ONE WALLET · TWO NETWORKS · TWO SIGNATURES</p>
+        <h1>Deploy the verified<br /><em>redemption rail.</em></h1>
+        <p class="lede">This page switches MetaMask to the correct network before each request and records every confirmed address.</p>
+        <button class="primary" id="connect-wallet" type="button">Connect MetaMask</button>
+        <div class="wallet-state" id="wallet-state">Wallet not connected</div>
+      </section>
+
+      <section class="steps" aria-label="V2 deployment steps">
+        <article>
+          <div class="number">01</div>
+          <p class="network">ETHEREUM SEPOLIA</p>
+          <h2>Canonical vault factory</h2>
+          <p>Deploys only the reviewed CREATE2 reserve vault implementation. Existing V1 vaults remain unchanged.</p>
+          <button id="deploy-source" type="button" disabled>Deploy on Sepolia</button>
+          <div class="status" id="source-status">Connect the deployment wallet first.</div>
+          <a class="result-link" id="source-link" hidden>Inspect deployment ↗</a>
+        </article>
+
+        <article>
+          <div class="number">02</div>
+          <p class="network">CREDITCOIN CC3</p>
+          <h2>V2 issuer factory</h2>
+          <p>Recognizes only vault addresses derived from the confirmed Sepolia factory and locks a 1 CTC minimum stake.</p>
+          <button id="deploy-destination" type="button" disabled>Deploy on Creditcoin</button>
+          <div class="status" id="destination-status">Complete step 01 first.</div>
+          <a class="result-link" id="destination-link" hidden>Inspect deployment ↗</a>
+        </article>
+      </section>
+
+      <aside class="evidence" id="evidence" hidden>
+        <p class="eyebrow">DEPLOYMENT COMPLETE</p>
+        <h2>Both V2 factories are live.</h2>
+        <pre id="evidence-json"></pre>
+        <button id="copy-evidence" type="button">Copy evidence JSON</button>
+      </aside>
+    </main>
+    <script type="module" src="./v2-deploy.js"></script>
+  </body>
+</html>

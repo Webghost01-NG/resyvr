@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "55e93e1",
+  "deployer": "0x6CeD8D6Bad8Dfd2e60BCEA116fE74548f959f1F2",
+  "source": {
+    "network": "Ethereum Sepolia",
+    "chainId": 11155111,
+    "contract": "SourceReserveVaultFactoryV2",
+    "address": "0x97e27c9dAA20fE0D3B7C18A7DBd8ca2A266E400f",
+    "transactionHash": "0xd175efa5ee94b7d23e7f87b50cb428aa221825f666290ba949f304010fc25a37",
+    "blockNumber": 11671549,
+    "gasUsed": 914283,
+    "runtimeBytecodeHash": "0x36b7ad16de378a405547a16f8c435bdf60889ad50208a4c8cbb211d4e14f2080",
+    "explorerUrl": "https://eth-sepolia.blockscout.com/address/0x97e27c9dAA20fE0D3B7C18A7DBd8ca2A266E400f",
+    "verified": true
+  },
+  "destination": {
+    "network": "Creditcoin CC3 Testnet",
+    "chainId": 102031,
+    "contract": "IssuerFactoryV2",
+    "address": "0x9b57616fb4fb72fb9aea8eb35b06140e9073dd62",
+    "transactionHash": "0xae36df3f8a64499f8d4aada5717b7e5d7e919acf4c08aefa2d3c01b918cbd0b6",
+    "blockNumber": 5460715,
+    "gasUsed": 5062765,
+    "runtimeBytecodeHash": "0x28298c30dd3d343fa3a8139a18d256505348c2a87f3e7752742a9e7456dbf1fd",
+    "minimumBond": "1000000000000000000",
+    "sourceVaultFactory": "0x97e27c9dAA20fE0D3B7C18A7DBd8ca2A266E400f",
+    "explorerUrl": "https://creditcoin-testnet.blockscout.com/address/0x9b57616fb4fb72fb9aea8eb35b06140e9073dd62",
+    "verified": true
+  }
+}

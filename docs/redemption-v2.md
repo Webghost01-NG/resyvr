@@ -103,6 +103,19 @@ lifecycle, address provenance, payout authorization, exact transfer accounting,
 proof and redemption replay, mismatched terms, failed receipts, pause behavior,
 and bond release constraints.
 
+## Verified factory deployments
+
+- Sepolia `SourceReserveVaultFactoryV2`:
+  [`0x97e27c9d…6e400f`](https://eth-sepolia.blockscout.com/address/0x97e27c9dAA20fE0D3B7C18A7DBd8ca2A266E400f)
+- Creditcoin `IssuerFactoryV2`:
+  [`0x9b57616f…73dd62`](https://creditcoin-testnet.blockscout.com/address/0x9b57616fb4fb72fb9aea8eb35b06140e9073dd62)
+
+Both explorers report verified Solidity 0.8.30 source. The destination factory
+stores the Sepolia factory address and a 1 CTC minimum activation stake as
+constructor immutables. `npm run evidence:v2:verify` checks both receipts,
+runtime bytecode, constructor state, and explorer verification from the
+versioned evidence in `config/v2-deployments.json`.
+
 ## Deployment order
 
 V2 uses separate factories and does not replace V1:
@@ -118,5 +131,6 @@ forge script --root contracts script/DeployIssuerFactoryV2.s.sol \
 ```
 
 The source factory must be deployed first because its address is immutable in
-the Creditcoin V2 factory. Deployment addresses and real redemption evidence
-must be captured before V2 is described as live.
+the Creditcoin V2 factory. The factories are live; a canonical issuer and real
+redemption proof are still required before the complete V2 lifecycle is
+described as live.
