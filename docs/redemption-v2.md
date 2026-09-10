@@ -2,10 +2,10 @@
 
 ## Status and boundary
 
-V2 is a reviewed prototype contract set. It is not deployed and does not alter
-the public V1 pilot, its issuers, or their balances. V1 remains an issuance-only
-testnet system. A V2 issuer must be created with the V2 factories from the
-beginning because the deployed V1 contracts are immutable.
+V2 is a separately deployed contract set and does not alter the public V1
+pilot, its issuers, or their balances. V1 remains an issuance-only testnet
+system. A V2 issuer must be created with the V2 factories from the beginning
+because the deployed V1 contracts are immutable.
 
 ## Canonical vault provenance
 
@@ -21,8 +21,8 @@ V2 removes the arbitrary-vault trust gap from issuer registration:
    emits the exact canonical deposit event.
 
 The address derivation binds the expected creation code and constructor values.
-The production deployment still needs a published, verified canonical factory
-address for each supported source network.
+Each supported source network needs its own published, verified canonical
+factory address. The current pilot publishes one for Ethereum Sepolia.
 
 ## Lifecycle
 
@@ -131,6 +131,7 @@ forge script --root contracts script/DeployIssuerFactoryV2.s.sol \
 ```
 
 The source factory must be deployed first because its address is immutable in
-the Creditcoin V2 factory. The factories are live; a canonical issuer and real
-redemption proof are still required before the complete V2 lifecycle is
-described as live.
+the Creditcoin V2 factory. The factories are live. The guided
+[`v2-pilot.html`](../dashboard/v2-pilot.html) flow creates and records the first
+canonical issuer and real issuance/redemption lifecycle; final transaction
+evidence is published only after every on-chain step confirms.

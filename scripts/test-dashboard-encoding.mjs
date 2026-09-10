@@ -4,9 +4,14 @@ import { AbiCoder, Interface } from "ethers";
 import {
   encodeApprove,
   encodeCreateIssuer,
+  encodeCreateIssuerV2,
+  encodeCreateVaultV2,
   encodeDeposit,
   encodeExecuteDeposit,
+  encodeExecutePayout,
   encodeFactoryDeployment,
+  encodePayout,
+  encodeRequestRedemption,
   encodeSourceVaultDeployment,
   parseUnits,
 } from "../dashboard/encoding.mjs";
@@ -37,6 +42,41 @@ const issuerParameters = {
   tokenName: "Resyvr USD",
   tokenSymbol: "rvUSD",
 };
+
+const sourceFactoryV2 = new Interface([
+  "function createVault(address reserveAsset,bytes32 issuerId)",
+]);
+assert.equal(
+  encodeCreateVaultV2(issuerParameters.reserveAsset, issuerParameters.issuerId),
+  sourceFactoryV2.encodeFunctionData("createVault", [issuerParameters.reserveAsset, issuerParameters.issuerId]),
+  "V2 source vault factory calldata differs from ethers ABI encoding",
+);
+
+const issuerParametersV2 = {
+  ...issuerParameters,
+  sourcePayoutOperator: `0x${"55".repeat(20)}`,
+};
+const factoryV2 = new Interface([
+  "function createIssuer((bytes32 issuerId,uint64 sourceChainKey,address sourceVault,address sourceExecutor,address sourcePayoutOperator,address reserveAsset,uint8 decimals,string tokenName,string tokenSymbol) parameters)",
+]);
+assert.equal(
+  encodeCreateIssuerV2(issuerParametersV2),
+  factoryV2.encodeFunctionData("createIssuer", [issuerParametersV2]),
+  "V2 issuer factory calldata differs from ethers ABI encoding",
+);
+
+const redemption = new Interface([
+  "function requestRedemption(uint256 amount,address recipient)",
+  "function payout(bytes32 redemptionId,address recipient,uint256 amount)",
+]);
+assert.equal(
+  encodeRequestRedemption(5_000_000n, issuerParameters.sourceExecutor),
+  redemption.encodeFunctionData("requestRedemption", [5_000_000n, issuerParameters.sourceExecutor]),
+);
+assert.equal(
+  encodePayout(issuerParameters.issuerId, issuerParameters.sourceExecutor, 5_000_000n),
+  redemption.encodeFunctionData("payout", [issuerParameters.issuerId, issuerParameters.sourceExecutor, 5_000_000n]),
+);
 
 const factory = new Interface([
   "function createIssuer((bytes32 issuerId,uint64 sourceChainKey,address sourceVault,address sourceExecutor,address reserveAsset,uint8 decimals,string tokenName,string tokenSymbol) parameters)",
@@ -88,6 +128,23 @@ assert.equal(
     proof.continuityProof.roots,
   ]),
   "proof calldata differs from ethers ABI encoding",
+);
+
+const payoutController = new Interface([
+  "function executePayout(uint64 chainKey,uint64 blockHeight,bytes encodedTransaction,bytes32 merkleRoot,(bytes32 hash,bool isLeft)[] siblings,bytes32 lowerEndpointDigest,bytes32[] continuityRoots)",
+]);
+assert.equal(
+  encodeExecutePayout(proof),
+  payoutController.encodeFunctionData("executePayout", [
+    proof.chainKey,
+    proof.headerNumber,
+    proof.txBytes,
+    proof.merkleProof.root,
+    proof.merkleProof.siblings,
+    proof.continuityProof.lowerEndpointDigest,
+    proof.continuityProof.roots,
+  ]),
+  "payout proof calldata differs from ethers ABI encoding",
 );
 
 assert.equal(parseUnits("5.125", 6), 5_125_000n);

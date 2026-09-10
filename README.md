@@ -61,6 +61,9 @@ alone proves current solvency.
 
 **Live demo:** https://webghost01-ng.github.io/resyvr/
 
+**Guided V2 issuance + redemption:**
+https://webghost01-ng.github.io/resyvr/dashboard/v2-pilot.html
+
 Serve the repository root and open the dashboard:
 
 ```bash
@@ -80,7 +83,7 @@ proof-backed token**. Connecting requests account access; it does not send a
 transaction. Use a wallet funded with Sepolia ETH for source-chain gas, test
 USDC for the reserve, and testnet CTC for destination gas and the issuer bond.
 
-The launchpad then guides six steps:
+The V1 launchpad then guides six steps:
 
 1. **Deploy reserve vault — Sepolia.** Create a new `SourceReserveVault` bound
    to your issuer ID and the configured test USDC asset.
@@ -102,10 +105,16 @@ Each transaction displays its network and effect before the wallet opens. A
 new issuer uses its own vault and deposit; the public pilot's proof and rvUSD
 metrics remain recorded evidence for that pilot. See the [wallet-flow guide](docs/wallet-flow.md)
 for confirmation states and recovery guidance. The deployed V1 vault has no
-withdrawal path; use test assets only. A separate, undeployed
-[V2 redemption prototype](docs/redemption-v2.md) implements token escrow, exact
-source payout verification, escrow burning, canonical vault provenance, and
-liability-aware bond release without changing the live pilot.
+withdrawal path; use test assets only.
+
+The deployed [V2 redemption protocol](docs/redemption-v2.md) uses separate,
+verified factories and leaves V1 balances untouched. Its guided pilot page
+creates a canonical Sepolia vault, mints exactly `0.1 rvUSD2` from an attested
+`0.1` test-USDC deposit, escrows the token for redemption, pays the exact
+Sepolia recipient, submits the payout proof on Creditcoin, and verifies that
+the escrowed supply was burned. The page automatically requests the correct
+network, saves hashes before confirmation polling, and validates the source
+transaction and event before either proof submission.
 
 Wallet transactions use a buffered public-RPC gas estimate so MetaMask does not
 fall back to a gas limit above the network cap. When a connected administrator
@@ -113,8 +122,11 @@ has created at least two factory issuers, the launchpad shows an on-chain asset
 portfolio with each token address, controller, network, decimals, and management
 action. Reopening an asset restores its live bond state and latest unconsumed
 reserve deposit so the administrator can finish the proof and mint sequence.
-The reserve, total supply, coverage, CTC bond, immutable configuration, and
+The reserve, total supply, proof-accounting coverage, CTC activation stake,
+immutable configuration, and
 connected-wallet token balance switch to the selected issuer's live contracts.
+An issuer with a configured vault but no confirmed deposit is displayed as a
+draft with **Vault configured**, never as reserve locked or source confirmed.
 Importing a token contract into MetaMask only makes an existing balance visible;
 tokens reach a holder through proof-backed minting to that deposit's recipient
 or a later ERC-20 transfer on Creditcoin CC3.
