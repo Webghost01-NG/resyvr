@@ -84,10 +84,12 @@ The three cases pass and demonstrate:
 - a beneficiary differing between direct-call calldata and the vault event
   fails with `InvalidDepositLog()` (`0xc12dcbc2`).
 
-The full 39-test suite also covers source-chain, transaction target, issuer,
+The full 54-test suite also covers source-chain, transaction target, issuer,
 depositor, receipt status, amount, duplicate-log, deposit-ID replay, pause,
-bond, and mint authorization failures. Stateful campaigns assert that token
-supply always equals independently accumulated proven reserve.
+bond, mint authorization, canonical V2 vault provenance, and V2 redemption
+failures. Stateful campaigns assert that V1 token supply always equals
+independently accumulated proven reserve. V2 tests remain local prototype
+evidence until its separate deployments are recorded.
 
 ## Reproduction
 

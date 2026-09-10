@@ -4,7 +4,7 @@
 
 Resyvr is a proof-bounded issuance system, not a new oracle, a production
 stablecoin issuer, or a claim that CTC has a fixed dollar value. CTC pays gas
-and funds an issuer safety bond. The demonstrated reserve asset is test USDC on
+and funds an issuer activation stake. The demonstrated reserve asset is test USDC on
 Sepolia.
 
 ## System map
@@ -15,7 +15,7 @@ Ethereum Sepolia                              Creditcoin CC3 Testnet
 Issuer / reserve provider                     Issuer / holder
         |                                             |
         v                                             v
-SourceReserveVault -- deposit / payout events --> Attestcoin proof
+SourceReserveVault V1/V2 -- deposit / V2 payout events --> Attestcoin proof
                                                       |
                                                       v
                                               ProofReserveController
@@ -49,7 +49,9 @@ ReservePaidOut(
 )
 ```
 
-The vault must not expose a generic administrative withdrawal. Every reserve
+The V1 vault implements deposits only. The V2 prototype adds identified payouts
+and canonical CREATE2 deployment through `SourceReserveVaultFactoryV2`; it still
+does not expose a generic administrative withdrawal. Every reserve
 movement must emit a uniquely identified event that can be proven and
 reconciled on Creditcoin. This reduces hidden-withdrawal risk but does not make
 the source-chain issuer or reserve asset trustless.
@@ -82,8 +84,9 @@ An issuer record binds:
 - minimum CTC bond;
 - operational and paused status.
 
-The token exposes standard transfers plus controller-only minting. Burning and
-redemption escrow are deferred until the issuance path passes the day-one gate.
+The V1 token exposes standard transfers plus controller-only minting. The V2
+prototype adds controller escrow and controller-only burning after an exact
+source payout proof succeeds.
 
 ### CTCBondVault — Creditcoin
 
@@ -119,9 +122,11 @@ assumption:
 4. exact recipient, amount, issuer, request ID, and receipt success are checked;
 5. escrowed tokens burn and the request finalizes.
 
-An expired request and an unmatched source payout need explicit recovery and
-bond rules. Until those rules are implemented and tested, Resyvr will claim a
-working issuance rail rather than a trustless two-way stablecoin.
+V2 deliberately has no automatic timeout refund because a completed source
+payout may still be waiting for proof submission. Its bond cannot be released
+while supply or a redemption liability remains. The protocol still has an
+issuer-liveness assumption and does not claim a trustless two-way stablecoin.
+See [the V2 redemption specification](redemption-v2.md).
 
 ## Core invariants
 
@@ -134,6 +139,8 @@ working issuance rail rather than a trustless two-way stablecoin.
 - Confirmed minted supply cannot exceed confirmed net reserve after decimal
   normalization.
 - Issuer records cannot silently change source vault, asset, or chain.
+- A V2 issuer must reference the canonical CREATE2 vault derived by the
+  configured source-vault factory.
 - Pausing blocks new issuance while preserving inspection and recovery paths.
 - CTC bond value is shown in CTC; no unverified USD conversion is presented.
 

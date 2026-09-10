@@ -41,3 +41,13 @@ sequence it requires:
 These tests use a deterministic verifier stub to isolate the controller's
 semantic and state-transition logic. The live CC3 evidence separately exercises
 Creditcoin's Block Prover precompile with a real Sepolia transaction proof.
+
+## V2 redemption prototype
+
+`RedemptionV2.t.sol` additionally requires that both chain factories derive the
+same canonical source vault and rejects arbitrary vaults or payout operators.
+It tests exact reserve payout, escrow and burn accounting, payout-query and
+redemption-ID replay, failed receipts, mismatched recipients and amounts,
+fee-on-transfer reserve behavior, pause behavior, and CTC bond locking until all
+issued supply is redeemed. These are local prototype tests; they are not live
+V2 deployment evidence.

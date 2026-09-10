@@ -6,7 +6,7 @@ Research snapshot: 9 September 2026.
 
 No public Creditcoin product was found with Resyvr's complete proposed scope:
 multi-issuer creation, isolated external reserves, proof-bounded minting,
-redemption reconciliation, CTC safety bonds, and a public solvency dashboard.
+redemption reconciliation, CTC activation stakes, and a public proof-accounting dashboard.
 
 The underlying pieces already exist. Resyvr must win on the issuer system and
 end-to-end product rather than claim novelty for cross-chain proof verification
@@ -74,4 +74,3 @@ scope as of 9 September 2026."
 
 The project must not say: "Nothing like this exists," "first ever," or
 "trustless stablecoin" without further evidence.
-

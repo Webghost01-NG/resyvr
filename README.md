@@ -5,7 +5,7 @@
 Resyvr is a multi-issuer asset issuance rail for Creditcoin. An issuer locks an
 approved reserve asset in a source-chain vault, proves that deposit through the
 Attestcoin Protocol, and mints a branded reserve token on Creditcoin. Each
-issuer has an isolated reserve position, token, roles, and CTC safety bond.
+issuer has an isolated reserve position, token, roles, and CTC activation stake.
 
 The hackathon target is the **RWA track**: give organizations a reusable way to
 issue and manage reserve-backed digital assets while making the backing trail
@@ -20,8 +20,9 @@ examples do not provide:
 
 - permissionless creation of isolated issuer/token/reserve pairs;
 - proof-bounded minting tied to an exact source vault and reserve asset;
-- CTC-denominated issuer safety bonds;
-- proof-aware redemption accounting and mismatch penalties;
+- CTC-denominated issuer activation stakes;
+- V2 proof-finalized redemption with liability-aware bond release;
+- V2 canonical vault provenance instead of arbitrary source contracts;
 - public reserve coverage, proof provenance, roles, and failure states.
 
 ## Four-day MVP
@@ -31,9 +32,10 @@ vault, and submits a genuine Attestcoin proof to mint the matching amount on
 Creditcoin CC3 Testnet. The dashboard shows the source transaction, verified
 reserve, supply, coverage, CTC bond, and rejected replay/mismatch cases.
 
-Redemption is included only if the proof-bounded issuance path is working by the
-end of day one. The system will not claim that CTC is dollar-stable or that a
-historical deposit proof alone proves current solvency.
+The live V1 pilot demonstrates proof-bounded issuance. The separate V2
+prototype adds redemption and canonical source-vault provenance. The system
+does not claim that CTC is dollar-stable or that a historical deposit proof
+alone proves current solvency.
 
 ## Documents
 
@@ -99,8 +101,11 @@ The launchpad then guides six steps:
 Each transaction displays its network and effect before the wallet opens. A
 new issuer uses its own vault and deposit; the public pilot's proof and rvUSD
 metrics remain recorded evidence for that pilot. See the [wallet-flow guide](docs/wallet-flow.md)
-for confirmation states and recovery guidance. The MVP vault has no withdrawal
-path; use test assets only. Redemption remains deferred.
+for confirmation states and recovery guidance. The deployed V1 vault has no
+withdrawal path; use test assets only. A separate, undeployed
+[V2 redemption prototype](docs/redemption-v2.md) implements token escrow, exact
+source payout verification, escrow burning, canonical vault provenance, and
+liability-aware bond release without changing the live pilot.
 
 Wallet transactions use a buffered public-RPC gas estimate so MetaMask does not
 fall back to a gas limit above the network cap. When a connected administrator
