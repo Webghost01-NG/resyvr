@@ -1,13 +1,15 @@
 import { readFile } from "node:fs/promises";
 import { keccak256 } from "ethers";
 
-const [html, app, wallet, sourceVaultArtifact, networks, pilot] = await Promise.all([
+const [html, app, wallet, sourceVaultArtifact, networks, pilot, v2Pilot, v2Deployments] = await Promise.all([
   readFile(new URL("../dashboard/index.html", import.meta.url), "utf8"),
   readFile(new URL("../dashboard/app.js", import.meta.url), "utf8"),
   readFile(new URL("../dashboard/wallet.js", import.meta.url), "utf8"),
   readFile(new URL("../config/source-vault-deployment.json", import.meta.url), "utf8").then(JSON.parse),
   readFile(new URL("../config/networks.json", import.meta.url), "utf8").then(JSON.parse),
   readFile(new URL("../config/pilot.json", import.meta.url), "utf8").then(JSON.parse),
+  readFile(new URL("../dashboard/v2-pilot.js", import.meta.url), "utf8"),
+  readFile(new URL("../config/v2-deployments.json", import.meta.url), "utf8").then(JSON.parse),
 ]);
 
 const definedIds = new Set([...html.matchAll(/\bid="([^"]+)"/g)].map((match) => match[1]));
@@ -47,6 +49,15 @@ if (!/^0x[0-9a-f]{40}$/i.test(networks.source.transactionExecutor || "")) {
 }
 if (networks.source.transactionExecutor.toLowerCase() !== pilot.sourceExecutor.toLowerCase()) {
   throw new Error("New issuers do not use the routed executor proven by the pilot");
+}
+if (networks.destination.issuerFactoryV2.toLowerCase() !== v2Deployments.destination.address.toLowerCase()) {
+  throw new Error("V2 pilot factory does not match verified deployment evidence");
+}
+if (!v2Pilot.includes("sourceExecutor: networks.source.transactionExecutor || ZERO_ADDRESS")) {
+  throw new Error("V2 issuer creation does not configure the supported source executor");
+}
+if (!v2Pilot.includes("transactionTargetsSourceVault") || !v2Pilot.includes("recoverConfirmedDeposit") || !v2Pilot.includes("migratePilotState")) {
+  throw new Error("V2 pilot cannot validate routed source calls and recover confirmed deposits");
 }
 if (sourceVaultArtifact.contract !== "SourceReserveVault") throw new Error("Dashboard source-vault artifact names the wrong contract");
 if (!/^0x[0-9a-f]+$/i.test(sourceVaultArtifact.creationBytecode || "")) throw new Error("Dashboard source-vault artifact has no deployable bytecode");

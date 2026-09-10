@@ -114,7 +114,10 @@ creates a canonical Sepolia vault, mints exactly `0.1 rvUSD2` from an attested
 Sepolia recipient, submits the payout proof on Creditcoin, and verifies that
 the escrowed supply was burned. The page automatically requests the correct
 network, saves hashes before confirmation polling, and validates the source
-transaction and event before either proof submission.
+transaction and event before either proof submission. It recognizes the
+configured MetaMask transaction executor on Sepolia and restores a confirmed
+reserve deposit from its canonical event after refresh or migration instead of
+requesting a duplicate deposit.
 
 Wallet transactions use a buffered public-RPC gas estimate so MetaMask does not
 fall back to a gas limit above the network cap. When a connected administrator

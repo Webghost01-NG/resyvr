@@ -23,6 +23,6 @@
     "verifierPrecompile": "0x0000000000000000000000000000000000000FD2",
     "chainInfoPrecompile": "0x0000000000000000000000000000000000000FD3",
     "evmV1Decoder": "0x04B9ae8562D8Cc5bbbBbBB759080dDC30B56D18B",
-    "issuerFactoryV2": "0x9b57616fb4fb72fb9aea8eb35b06140e9073dd62"
+    "issuerFactoryV2": "0x9266b4af55cdb47da17bf2d8a403113a6f7bf0d8"
   }
 }
