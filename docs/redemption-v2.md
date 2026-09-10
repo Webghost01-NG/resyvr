@@ -108,13 +108,18 @@ and bond release constraints.
 - Sepolia `SourceReserveVaultFactoryV2`:
   [`0x97e27c9d…6e400f`](https://eth-sepolia.blockscout.com/address/0x97e27c9dAA20fE0D3B7C18A7DBd8ca2A266E400f)
 - Creditcoin `IssuerFactoryV2`:
-  [`0x9b57616f…73dd62`](https://creditcoin-testnet.blockscout.com/address/0x9b57616fb4fb72fb9aea8eb35b06140e9073dd62)
+  [`0x9266b4af…bf0d8`](https://creditcoin-testnet.blockscout.com/address/0x9266b4af55cdb47da17bf2d8a403113a6f7bf0d8)
 
 Both explorers report verified Solidity 0.8.30 source. The destination factory
 stores the Sepolia factory address and a 1 CTC minimum activation stake as
 constructor immutables. `npm run evidence:v2:verify` checks both receipts,
 runtime bytecode, constructor state, and explorer verification from the
 versioned evidence in `config/v2-deployments.json`.
+
+The configured source executor supports direct and MetaMask-routed source
+transactions while retaining strict canonical event validation. The guided
+pilot recovers a confirmed source deposit after a refresh or factory migration, so it
+never asks the wallet to lock the same reserve twice.
 
 ## Deployment order
 

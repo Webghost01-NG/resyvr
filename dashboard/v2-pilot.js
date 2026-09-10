@@ -10,6 +10,7 @@ import {
 } from "./encoding.mjs";
 
 const STORAGE_KEY = "resyvr-v2-live-pilot-v1";
+const PILOT_REVISION = 2;
 const AMOUNT = 100_000n;
 const BOND = 1_000_000_000_000_000_000n;
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
@@ -28,6 +29,7 @@ const CALLS = {
   totalPendingRedemption: "0x60ad5a69",
   totalRedeemed: "0xf35dad40",
   totalSupply: "0x18160ddd",
+  sourceExecutor: "0xacfb1e26",
 };
 
 const byId = (id) => document.getElementById(id);
@@ -78,6 +80,13 @@ function addressFromWord(value) {
 
 function addressArgument(value) {
   return value.toLowerCase().replace(/^0x/, "").padStart(64, "0");
+}
+
+function transactionTargetsSourceVault(transaction) {
+  const target = transaction?.to?.toLowerCase();
+  const vault = state.sourceVault?.toLowerCase();
+  const executor = networks.source.transactionExecutor?.toLowerCase();
+  return target === vault || (executor && target === executor);
 }
 
 async function publicRpc(rpcUrl, method, params = []) {
@@ -231,13 +240,18 @@ async function readUint(key, to, data) {
   return BigInt(result || "0x0");
 }
 
+async function readAddress(key, to, data) {
+  const result = await publicRpc(networks[key].rpcUrl, "eth_call", [{ to, data }, "latest"]);
+  return addressFromWord(result);
+}
+
 async function validateDepositTransaction() {
   const [receipt, transaction] = await Promise.all([
     publicRpc(networks.source.rpcUrl, "eth_getTransactionReceipt", [state.depositTransaction]),
     publicRpc(networks.source.rpcUrl, "eth_getTransactionByHash", [state.depositTransaction]),
   ]);
   if (!receipt || !transaction || BigInt(receipt.status || "0x0") !== 1n) throw new Error("Reserve deposit is missing or failed");
-  if (transaction.to?.toLowerCase() !== state.sourceVault.toLowerCase()) throw new Error("Reserve deposit targeted the wrong vault");
+  if (!transactionTargetsSourceVault(transaction)) throw new Error("Reserve deposit targeted neither the canonical vault nor its configured wallet executor");
   if (transaction.from?.toLowerCase() !== state.account.toLowerCase()) throw new Error("Reserve depositor does not match the pilot wallet");
   const event = matchingLog(receipt, state.sourceVault, EVENTS.deposited);
   if (!event || event.topics?.[1]?.toLowerCase() !== state.issuerId.toLowerCase()) throw new Error("Canonical ReserveDeposited event was not found");
@@ -253,7 +267,7 @@ async function validatePayoutTransaction() {
     publicRpc(networks.source.rpcUrl, "eth_getTransactionByHash", [state.payoutTransaction]),
   ]);
   if (!receipt || !transaction || BigInt(receipt.status || "0x0") !== 1n) throw new Error("Reserve payout is missing or failed");
-  if (transaction.to?.toLowerCase() !== state.sourceVault.toLowerCase()) throw new Error("Reserve payout targeted the wrong vault");
+  if (!transactionTargetsSourceVault(transaction)) throw new Error("Reserve payout targeted neither the canonical vault nor its configured wallet executor");
   if (transaction.from?.toLowerCase() !== state.account.toLowerCase()) throw new Error("Payout operator does not match the configured administrator");
   const event = matchingLog(receipt, state.sourceVault, EVENTS.paidOut);
   if (!event || event.topics?.[1]?.toLowerCase() !== state.issuerId.toLowerCase()) throw new Error("Canonical ReservePaidOut event was not found");
@@ -261,6 +275,76 @@ async function validatePayoutTransaction() {
   if (addressFromWord(event.topics[3]).toLowerCase() !== state.account.toLowerCase()) throw new Error("Payout recipient does not match");
   if (addressFromWord(`0x${event.data.slice(2, 66)}`).toLowerCase() !== state.account.toLowerCase()) throw new Error("Payout operator event does not match");
   if (BigInt(`0x${event.data.slice(66, 130)}`) !== AMOUNT) throw new Error("Payout amount does not match 0.1 USDC");
+}
+
+function restoreDepositFromLog(log) {
+  if (!log?.transactionHash || !log?.blockNumber || !log.topics?.[2]) return false;
+  state.depositTransaction = log.transactionHash;
+  state.depositBlock = Number(BigInt(log.blockNumber));
+  state.depositId = log.topics[2];
+  recordTransaction("Lock reserve", log.transactionHash, "depositReserve", "source");
+  return true;
+}
+
+async function recoverConfirmedDeposit() {
+  if (!state.sourceVault || !state.issuerId || !state.account) return false;
+  if (state.depositTransaction) {
+    const receipt = await publicRpc(networks.source.rpcUrl, "eth_getTransactionReceipt", [state.depositTransaction]);
+    const event = receipt && matchingLog(receipt, state.sourceVault, EVENTS.deposited);
+    if (event) restoreDepositFromLog({ ...event, transactionHash: receipt.transactionHash, blockNumber: receipt.blockNumber });
+  } else {
+    const createVault = (state.transactions || []).find((entry) => entry.label === "canonical reserve vault creation");
+    const creationReceipt = createVault
+      ? await publicRpc(networks.source.rpcUrl, "eth_getTransactionReceipt", [createVault.hash])
+      : null;
+    const latestHex = await publicRpc(networks.source.rpcUrl, "eth_blockNumber");
+    const latest = BigInt(latestHex);
+    const fromBlock = creationReceipt?.blockNumber || toQuantity(latest > 20_000n ? latest - 20_000n : 0n);
+    const logs = await publicRpc(networks.source.rpcUrl, "eth_getLogs", [{
+      address: state.sourceVault,
+      fromBlock,
+      toBlock: "latest",
+      topics: [EVENTS.deposited, state.issuerId],
+    }]);
+    const event = [...logs].reverse().find((log) =>
+      addressFromWord(log.topics?.[3] || ZERO_ADDRESS).toLowerCase() === state.account.toLowerCase()
+        && BigInt(`0x${log.data.slice(66, 130)}`) === AMOUNT);
+    if (event) restoreDepositFromLog(event);
+  }
+  if (!state.depositTransaction) return false;
+  await validateDepositTransaction();
+  return true;
+}
+
+function migratePilotState() {
+  if ((state.revision || 0) >= PILOT_REVISION) return false;
+  const factoryChanged = state.controller
+    && state.issuerFactoryV2?.toLowerCase() !== networks.destination.issuerFactoryV2.toLowerCase();
+  if (factoryChanged && (state.mintedSupply || state.redemptionId)) {
+    throw new Error("This earlier pilot already minted on the retired controller. Export its evidence before starting the patched V2 pilot.");
+  }
+  if (factoryChanged) {
+    state.supersededDestination = {
+      controller: state.controller,
+      token: state.token,
+      bondVault: state.bondVault,
+    };
+    for (const key of [
+      "controller", "token", "bondVault", "depositProof", "depositProofShape",
+      "mintedSupply", "redemptionId", "payoutTransaction", "payoutBlock",
+      "payoutProof", "payoutProofShape", "final", "complete",
+    ]) delete state[key];
+    state.transactions = (state.transactions || []).filter((entry) => entry.key === "source");
+    state.evidence = (state.evidence || []).filter((entry) => entry.chainKey === "source");
+    if (state.pending?.key === "destination") state.pending = null;
+    state.step = 2;
+    state.lastMessage = "The patched verifier is live. Your canonical vault and confirmed reserve deposit are preserved; recreate only the Creditcoin token system.";
+    state.lastType = "success";
+  }
+  state.revision = PILOT_REVISION;
+  state.issuerFactoryV2 = networks.destination.issuerFactoryV2;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  return factoryChanged;
 }
 
 async function fetchProofJson(path, label) {
@@ -363,7 +447,7 @@ const steps = [
         issuerId: state.issuerId,
         sourceChainKey: networks.source.attestcoinChainKey,
         sourceVault: state.sourceVault,
-        sourceExecutor: ZERO_ADDRESS,
+        sourceExecutor: networks.source.transactionExecutor || ZERO_ADDRESS,
         sourcePayoutOperator: state.account,
         reserveAsset: networks.source.reserveAsset.address,
         decimals: 6,
@@ -383,10 +467,13 @@ const steps = [
       state.bondVault = addressFromWord(`0x${event.data.slice(194, 258)}`);
       if (sourceVault.toLowerCase() !== state.sourceVault.toLowerCase()) throw new Error("Issuer event returned the wrong source vault");
       if (payoutOperator.toLowerCase() !== state.account.toLowerCase()) throw new Error("Issuer event returned the wrong payout operator");
+      const sourceExecutor = await readAddress("destination", state.controller, CALLS.sourceExecutor);
+      if (sourceExecutor.toLowerCase() !== networks.source.transactionExecutor.toLowerCase()) throw new Error("Issuer controller returned the wrong source transaction executor");
       recordAddress("V2 controller", state.controller, "controller", "destination");
       recordAddress("rvUSD2 token", state.token, "token", "destination");
       recordAddress("CTC activation stake vault", state.bondVault, "bondVault", "destination");
       recordTransaction("Create V2 issuer", receipt.transactionHash, "createIssuer", "destination");
+      state.issuerFactoryV2 = networks.destination.issuerFactoryV2;
       completeStep("V2 token system confirmed.");
     },
   },
@@ -416,7 +503,14 @@ const steps = [
         data: CALLS.activate,
       }, "V2 issuance activation"));
       recordTransaction("Activate issuance", receipt.transactionHash, "activate", "destination");
-      completeStep("Proof-backed issuance is active.");
+      if (await recoverConfirmedDeposit()) {
+        state.step = 7;
+        state.lastMessage = "Issuance is active. Your confirmed 0.1 USDC deposit was recovered, so no repeat approval or deposit is needed.";
+        state.lastType = "success";
+        saveState();
+      } else {
+        completeStep("Proof-backed issuance is active.");
+      }
     },
   },
   {
@@ -439,6 +533,10 @@ const steps = [
     description: "The vault records a unique deposit ID and your wallet as the future rvUSD2 recipient.",
     button: "Deposit reserve",
     run: async () => {
+      if (await recoverConfirmedDeposit()) {
+        completeStep("Recovered the confirmed 0.1 USDC deposit; no repeat transaction was sent.");
+        return;
+      }
       const receipt = await transactionReceipt("source", () => sendTransaction("source", {
         to: state.sourceVault,
         data: encodeDeposit(state.depositId, state.account, AMOUNT),
@@ -713,5 +811,19 @@ if (!response.ok) throw new Error(`Network configuration unavailable: HTTP ${res
 networks = await response.json();
 if (!networks.source.canonicalVaultFactoryV2 || !networks.destination.issuerFactoryV2) {
   throw new Error("Verified V2 factory addresses are unavailable");
+}
+try {
+  const migrated = migratePilotState();
+  const recoveredDeposit = await recoverConfirmedDeposit();
+  if (!migrated && recoveredDeposit && state.step === 6) {
+    state.step = 7;
+    state.lastMessage = "Recovered the confirmed 0.1 USDC deposit. The Creditcoin proof step is ready.";
+    state.lastType = "success";
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }
+} catch (error) {
+  state.lastMessage = errorMessage(error);
+  state.lastType = "error";
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 render();
