@@ -36,6 +36,14 @@ safe retry without another wallet signature.
 See [`../docs/wallet-flow.md`](../docs/wallet-flow.md) for the six steps,
 transaction confirmations, and failure states.
 
+`v2-pilot.html` is the refresh-safe V2 lifecycle runner. It uses the verified
+factory addresses in `config/networks.json`, creates a unique issuer ID for the
+connected administrator, and guides the wallet across Sepolia and Creditcoin.
+It validates the canonical deposit and payout events before building their
+Attestcoin proof calldata, then verifies zero token supply, zero pending
+redemption, zero net verified reserve, and restored source USDC after the final
+burn. Open it locally at `http://127.0.0.1:8000/dashboard/v2-pilot.html`.
+
 The interface uses a code-native proof orbit to show the pilot's actual
 Sepolia → Attestcoin → Creditcoin route. Section reveals and pointer depth are
 implemented in `motion.js`; both automatically stop when the visitor enables

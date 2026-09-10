@@ -23,6 +23,7 @@
         <a href="#proof">How it works</a>
         <a href="#coverage">Live proof</a>
         <a href="#launch">Issue an asset</a>
+        <a href="./v2-pilot.html">V2 redemption</a>
       </nav>
       <a class="network-pill" id="header-contract-link" href="#configuration"><span aria-hidden="true"></span>CC3 live</a>
     </header>
@@ -113,9 +114,9 @@
 
         <div class="proof-flow">
           <article class="proof-card">
-            <div class="step-line"><span>01</span><span class="status verified-status">Source confirmed</span></div>
-            <h3>Reserve locked</h3>
-            <p>Circle test USDC entered the immutable Sepolia reserve vault with a unique deposit ID.</p>
+            <div class="step-line"><span>01</span><span class="status verified-status" id="source-evidence-status">Reserve locked</span></div>
+            <h3 id="source-evidence-title">Reserve locked</h3>
+            <p id="source-evidence-description">Circle test USDC entered the immutable Sepolia reserve vault with a unique deposit ID.</p>
             <dl>
               <div><dt>Source block</dt><dd id="source-block">—</dd></div>
               <div><dt>Deposit ID</dt><dd class="mono truncate" id="deposit-id">—</dd></div>
@@ -139,8 +140,8 @@
           <span class="connector" aria-hidden="true">→</span>
 
           <article class="proof-card">
-            <div class="step-line"><span>03</span><span class="status verified-status">State updated</span></div>
-            <h3>Reserve recorded</h3>
+            <div class="step-line"><span>03</span><span class="status verified-status" id="destination-evidence-status">State updated</span></div>
+            <h3 id="destination-evidence-title">Reserve recorded</h3>
             <p>Creditcoin consumed both replay keys and increased confirmed reserve by the proven event amount.</p>
             <dl>
               <div><dt>CC3 block</dt><dd id="proof-block">—</dd></div>

@@ -130,6 +130,18 @@ function applyTrackedEvidence(networks, pilot, deployment) {
   setText("coverage-title", "What the chain can prove now");
   document.querySelector("#coverage .source-note").textContent = "Live values use read-only JSON-RPC against the deployed pilot issuer contracts.";
   setText("proof-title", "One deposit. Three inspectable steps.");
+  setText("source-evidence-status", sourceTransaction ? "Reserve locked" : "Vault configured");
+  byId("source-evidence-status").className = `status ${sourceTransaction ? "verified-status" : "waiting-status"}`;
+  setText("source-evidence-title", sourceTransaction ? "Reserve locked" : "Reserve not locked");
+  setText(
+    "source-evidence-description",
+    sourceTransaction
+      ? "Circle test USDC entered the immutable Sepolia reserve vault with a unique deposit ID."
+      : "The source vault is configured, but no confirmed reserve deposit is recorded yet.",
+  );
+  setText("destination-evidence-status", proofTransaction ? "State updated" : "Waiting for proof");
+  byId("destination-evidence-status").className = `status ${proofTransaction ? "verified-status" : "waiting-status"}`;
+  setText("destination-evidence-title", proofTransaction ? "Reserve recorded" : "Reserve not recorded");
 
   setText("source-block", Number(pilot.depositBlockNumber).toLocaleString("en-US"));
   setText("deposit-id", pilot.depositId);
@@ -185,6 +197,16 @@ function applySelectedIssuerEvidence(networks, issuer) {
   document.querySelector("#coverage .source-note").textContent = `Live values for ${issuer.name || symbol} use its selected CC3 controller.`;
   setText("proof-title", `${symbol} issuance trail`);
 
+  const reserveLocked = Boolean(issuer.depositTransaction && issuer.depositBlock && issuer.depositId);
+  setText("source-evidence-status", reserveLocked ? "Reserve locked" : "Vault configured");
+  byId("source-evidence-status").className = `status ${reserveLocked ? "verified-status" : "waiting-status"}`;
+  setText("source-evidence-title", reserveLocked ? "Reserve locked" : "Reserve not locked");
+  setText(
+    "source-evidence-description",
+    reserveLocked
+      ? "Circle test USDC entered the immutable Sepolia reserve vault with a unique deposit ID."
+      : "The issuer contracts and source vault exist, but this issuer has no confirmed reserve deposit yet.",
+  );
   setText("source-block", issuer.depositBlock ? Number(issuer.depositBlock).toLocaleString("en-US") : "Pending");
   setText("deposit-id", issuer.depositId || "No reserve deposit yet");
   byId("deposit-id").title = issuer.depositId || "";
@@ -203,6 +225,9 @@ function applySelectedIssuerEvidence(networks, issuer) {
   setText("attestation-detail", proofAccepted ? "Proof accepted by the selected issuer controller" : "Complete the reserve deposit and generate its Attestcoin proof");
   setText("proof-block", proofAccepted ? "Confirmed" : "Pending");
   setText("replay-result", proofAccepted ? "Consumed" : "Not submitted");
+  setText("destination-evidence-status", proofAccepted ? "State updated" : "Waiting for proof");
+  byId("destination-evidence-status").className = `status ${proofAccepted ? "verified-status" : "waiting-status"}`;
+  setText("destination-evidence-title", proofAccepted ? "Reserve recorded" : "Reserve not recorded");
   if (issuer.proofTransaction) {
     setLink("proof-transaction-link", `${destinationExplorer}/tx/${issuer.proofTransaction}`, "Inspect Creditcoin transaction ↗");
   } else {

@@ -62,6 +62,18 @@ export function encodeDeposit(depositId, beneficiary, amount) {
   return `0xd954863c${encodeBytes32(depositId)}${encodeAddress(beneficiary)}${encodeUint(amount)}`;
 }
 
+export function encodeCreateVaultV2(reserveAsset, issuerId) {
+  return `0x877536c6${encodeAddress(reserveAsset)}${encodeBytes32(issuerId)}`;
+}
+
+export function encodePayout(redemptionId, recipient, amount) {
+  return `0x1f52f7fa${encodeBytes32(redemptionId)}${encodeAddress(recipient)}${encodeUint(amount)}`;
+}
+
+export function encodeRequestRedemption(amount, recipient) {
+  return `0x6f16b50d${encodeUint(amount)}${encodeAddress(recipient)}`;
+}
+
 export function encodeCreateIssuer(parameters) {
   const name = encodeString(parameters.tokenName);
   const symbol = encodeString(parameters.tokenSymbol);
@@ -81,7 +93,27 @@ export function encodeCreateIssuer(parameters) {
   return `0x3db42169${encodeUint(32)}${tuple}`;
 }
 
-export function encodeExecuteDeposit(proof) {
+export function encodeCreateIssuerV2(parameters) {
+  const name = encodeString(parameters.tokenName);
+  const symbol = encodeString(parameters.tokenSymbol);
+  const tupleHeadBytes = 9 * 32;
+  const tuple = [
+    encodeBytes32(parameters.issuerId),
+    encodeUint(parameters.sourceChainKey),
+    encodeAddress(parameters.sourceVault),
+    encodeAddress(parameters.sourceExecutor),
+    encodeAddress(parameters.sourcePayoutOperator),
+    encodeAddress(parameters.reserveAsset),
+    encodeUint(parameters.decimals),
+    encodeUint(tupleHeadBytes),
+    encodeUint(tupleHeadBytes + byteLength(name)),
+    name,
+    symbol,
+  ].join("");
+  return `0xec84cd86${encodeUint(32)}${tuple}`;
+}
+
+function encodeProofCall(selector, proof) {
   const transaction = encodeDynamicBytes(proof.txBytes);
   const siblings = `${encodeUint(proof.merkleProof.siblings.length)}${proof.merkleProof.siblings
     .map((entry) => `${encodeBytes32(entry.hash)}${encodeUint(entry.isLeft ? 1 : 0)}`)
@@ -91,7 +123,7 @@ export function encodeExecuteDeposit(proof) {
     .join("")}`;
   const headBytes = 7 * 32;
 
-  return `0x083eb8c8${[
+  return `${selector}${[
     encodeUint(proof.chainKey),
     encodeUint(proof.headerNumber),
     encodeUint(headBytes),
@@ -103,6 +135,15 @@ export function encodeExecuteDeposit(proof) {
     siblings,
     roots,
   ].join("")}`;
+}
+
+
+export function encodeExecuteDeposit(proof) {
+  return encodeProofCall("0x083eb8c8", proof);
+}
+
+export function encodeExecutePayout(proof) {
+  return encodeProofCall("0x3b50b227", proof);
 }
 
 export function parseUnits(value, decimals) {

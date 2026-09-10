@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0b0d16" />
+    <title>Resyvr V2 live pilot</title>
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./v2-pilot.css" />
+  </head>
+  <body>
+    <header class="nav">
+      <a class="brand" href="./"><span>R</span> RESYVR</a>
+      <p>LIVE V2 REDEMPTION PILOT</p>
+      <a href="https://github.com/Webghost01-NG/resyvr/issues/46" target="_blank" rel="noreferrer">ISSUE 46 ↗</a>
+    </header>
+
+    <main>
+      <section class="hero">
+        <p class="eyebrow">0.1 TEST USDC · ATTESTCOIN · CREDITCOIN CC3</p>
+        <h1>Mint it.<br /><em>Redeem it.</em><br />Prove both.</h1>
+        <p class="lede">One guided action at a time. Resyvr selects the correct network, saves every transaction before waiting, and validates both Sepolia events before a Creditcoin proof can be submitted.</p>
+      </section>
+
+      <section class="console" aria-live="polite">
+        <div class="progress-head">
+          <div><span id="step-number">00</span> / 14</div>
+          <div id="wallet-label">Wallet not connected</div>
+        </div>
+        <div class="progress"><span id="progress-bar"></span></div>
+        <p class="network" id="action-network">METAMASK</p>
+        <h2 id="action-title">Connect the pilot wallet</h2>
+        <p id="action-description">MetaMask will be switched automatically before every signature.</p>
+        <button id="continue-button" type="button">Connect MetaMask</button>
+        <p class="status" id="action-status">No transaction or message will be signed automatically.</p>
+        <a class="transaction" id="transaction-link" hidden target="_blank" rel="noreferrer">Inspect transaction ↗</a>
+      </section>
+
+      <section class="facts">
+        <article><span>ASSET</span><strong>Resyvr Redeemable USD</strong><small>rvUSD2 · 6 decimals</small></article>
+        <article><span>RESERVE</span><strong>0.1 test USDC</strong><small>Ethereum Sepolia</small></article>
+        <article><span>ISSUANCE</span><strong>0.1 rvUSD2</strong><small>Creditcoin CC3</small></article>
+        <article><span>FINAL STATE</span><strong>0 supply</strong><small>USDC returned to recipient</small></article>
+      </section>
+
+      <section class="trail">
+        <div class="section-heading"><p class="eyebrow">CONFIRMED EVIDENCE</p><h2>Every address and hash survives refresh.</h2></div>
+        <div id="evidence-list" class="evidence-list"></div>
+      </section>
+
+      <section class="complete" id="complete-panel" hidden>
+        <p class="eyebrow">LIVE CYCLE COMPLETE</p>
+        <h2>Reserve returned. Token burned.</h2>
+        <pre id="evidence-json"></pre>
+        <button id="copy-evidence" type="button">Copy evidence JSON</button>
+      </section>
+    </main>
+    <script type="module" src="./v2-pilot.js"></script>
+  </body>
+</html>
