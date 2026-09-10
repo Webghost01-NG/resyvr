@@ -119,12 +119,18 @@ do not claim that the underlying proof or lock-to-mint pattern is new.
 
 ## Security evidence
 
-The 39-test Foundry suite includes unit tests, 256-run fuzz tests, and 64
+The 54-test Foundry suite includes unit tests, 256-run fuzz tests, and 64
 stateful campaigns of 32 calls each. It covers chain, transaction target, log
 emitter, receipt status, issuer, depositor, beneficiary, amount, duplicate
 events, query and deposit replay, bond activation, pause authority, and
 controller-only minting. The stateful invariant requires token supply to equal
 independently accumulated proven reserve after every sequence.
+
+The separate V2 prototype adds proof-finalized redemption, liability-aware bond
+release, and canonical CREATE2 vault provenance. Its tests reject arbitrary
+vaults, payout operators, mismatched payout terms, failed receipts,
+fee-on-transfer accounting, and proof or redemption replay. V2 results are
+local contract evidence until the new factories and pilot are deployed.
 
 The accepted live query also rejects replay with
 `QueryAlreadyProcessed(bytes32)`. Wrong-emitter and wrong-beneficiary failures
@@ -135,12 +141,12 @@ invented live transactions.
 
 Attestcoin proves source-chain inclusion; Resyvr interprets the proven
 transaction under immutable rules. The test-USDC issuer remains trusted for the
-reserve asset. The CTC bond is a visible commitment rather than dollar
-insurance, and the MVP has no slashing path. Attestation introduces latency.
-Redemption is intentionally deferred because a safe source-chain payout needs
-an asynchronous request, payout proof, expiry, and recovery design. This is
-testnet software, test USDC has no financial value, and the contracts have not
-been audited.
+reserve asset. The V1 CTC bond is an issuance activation stake rather than
+dollar insurance, and the MVP has no slashing path. Attestation introduces
+latency. The V2 prototype implements asynchronous redemption but deliberately
+provides no automatic timeout refund because that could race an
+already-completed source payout. This is testnet software, test USDC has no
+financial value, and the contracts have not been audited.
 
 ## Technology
 
