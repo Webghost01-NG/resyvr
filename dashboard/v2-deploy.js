@@ -1,5 +1,8 @@
 const MINIMUM_BOND = 1_000_000_000_000_000_000n;
-const STORAGE_KEY = "resyvr-v2-factory-deployments";
+const ROUTED_WALLET_UPGRADE = new URLSearchParams(window.location.search).get("upgrade") === "routed-wallet";
+const STORAGE_KEY = ROUTED_WALLET_UPGRADE
+  ? "resyvr-v2-routed-wallet-upgrade"
+  : "resyvr-v2-factory-deployments";
 const NETWORKS = {
   source: {
     chainId: "0xaa36a7",
@@ -163,7 +166,7 @@ if (window.ethereum) {
 }
 
 const [bytecodeResponse, officialResponse] = await Promise.all([
-  fetch("../config/v2-deployment-bytecode.json"),
+  fetch(ROUTED_WALLET_UPGRADE ? "../config/v2-routed-wallet-bytecode.json" : "../config/v2-deployment-bytecode.json"),
   fetch("../config/v2-deployments.json"),
 ]);
 if (!bytecodeResponse.ok) throw new Error(`V2 deployment bytecode unavailable: HTTP ${bytecodeResponse.status}`);
@@ -178,13 +181,21 @@ if (officialResponse.ok && !deployments.source?.address && !deployments.destinat
       transactionHash: official.source.transactionHash,
       blockNumber: official.source.blockNumber,
     },
-    destination: {
-      chainId: official.destination.chainId,
-      address: official.destination.address,
-      transactionHash: official.destination.transactionHash,
-      blockNumber: official.destination.blockNumber,
-    },
+    ...(ROUTED_WALLET_UPGRADE ? {} : {
+      destination: {
+        chainId: official.destination.chainId,
+        address: official.destination.address,
+        transactionHash: official.destination.transactionHash,
+        blockNumber: official.destination.blockNumber,
+      },
+    }),
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(deployments));
+}
+if (ROUTED_WALLET_UPGRADE) {
+  document.title = "Resyvr V2 routed-wallet upgrade";
+  document.querySelector("header > p").textContent = "V2 ROUTED-WALLET UPGRADE";
+  document.querySelector(".intro h1").innerHTML = "Upgrade the CC3<br><em>redemption verifier.</em>";
+  document.querySelector(".intro .lede").textContent = "The Sepolia canonical factory stays unchanged. One Creditcoin signature deploys the patched factory that recognizes MetaMask-routed deposits and payouts.";
 }
 render();

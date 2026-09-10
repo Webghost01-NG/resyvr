@@ -242,6 +242,17 @@ contract IssuerRedemptionV2Test is Test {
         assertEq(token.balanceOf(address(controller)), 0);
     }
 
+    function testAcceptsPayoutRoutedThroughConfiguredExecutor() external {
+        bytes32 redemptionId = _requestRedemption(AMOUNT);
+        bytes memory payout = _encodedPayoutTo(redemptionId, recipient, payoutOperator, AMOUNT, 1, sourceExecutor);
+
+        _executePayout(payout, PAYOUT_BLOCK);
+        assertEq(controller.totalPendingRedemption(), 0);
+        assertEq(controller.totalRedeemed(), AMOUNT);
+        assertEq(controller.netVerifiedReserve(), 0);
+        assertEq(token.totalSupply(), 0);
+    }
+
     function testPayoutMustMatchPendingRecipientAndAmount() external {
         bytes32 redemptionId = _requestRedemption(AMOUNT);
         address wrongRecipient = makeAddr("wrong recipient");
@@ -425,6 +436,17 @@ contract IssuerRedemptionV2Test is Test {
         uint256 amount,
         uint8 receiptStatus
     ) internal view returns (bytes memory) {
+        return _encodedPayoutTo(redemptionId, payoutRecipient, operator, amount, receiptStatus, sourceVault);
+    }
+
+    function _encodedPayoutTo(
+        bytes32 redemptionId,
+        address payoutRecipient,
+        address operator,
+        uint256 amount,
+        uint8 receiptStatus,
+        address transactionTarget
+    ) internal view returns (bytes memory) {
         bytes32[] memory topics = new bytes32[](4);
         topics[0] = keccak256("ReservePaidOut(bytes32,bytes32,address,address,uint256)");
         topics[1] = ISSUER_ID;
@@ -433,13 +455,14 @@ contract IssuerRedemptionV2Test is Test {
         EvmV1Decoder.LogEntryTuple[] memory logs = new EvmV1Decoder.LogEntryTuple[](1);
         logs[0] =
             EvmV1Decoder.LogEntryTuple({ address_: sourceVault, topics: topics, data: abi.encode(operator, amount) });
-        return _encodedTransaction(
+        return _encodedTransactionTo(
             operator,
             abi.encodeWithSelector(
                 bytes4(keccak256("payout(bytes32,address,uint256)")), redemptionId, payoutRecipient, amount
             ),
             logs,
-            receiptStatus
+            receiptStatus,
+            transactionTarget
         );
     }
 
@@ -449,8 +472,18 @@ contract IssuerRedemptionV2Test is Test {
         EvmV1Decoder.LogEntryTuple[] memory logs,
         uint8 receiptStatus
     ) internal view returns (bytes memory) {
+        return _encodedTransactionTo(from, callData, logs, receiptStatus, sourceVault);
+    }
+
+    function _encodedTransactionTo(
+        address from,
+        bytes memory callData,
+        EvmV1Decoder.LogEntryTuple[] memory logs,
+        uint8 receiptStatus,
+        address transactionTarget
+    ) internal pure returns (bytes memory) {
         bytes[] memory chunks = new bytes[](3);
-        chunks[0] = abi.encode(uint64(1), uint64(150_000), from, false, sourceVault, uint256(0), callData);
+        chunks[0] = abi.encode(uint64(1), uint64(150_000), from, false, transactionTarget, uint256(0), callData);
         EvmV1Decoder.AccessListEntryBytes32[] memory accessList = new EvmV1Decoder.AccessListEntryBytes32[](0);
         chunks[1] = abi.encode(
             uint64(11155111), uint128(1 gwei), uint128(2 gwei), accessList, uint8(0), bytes32(0), bytes32(0)
