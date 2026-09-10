@@ -206,12 +206,18 @@ contract IssuerControllerV2 is ProofReserveController {
         }
 
         EvmV1Decoder.CommonTxFields memory transaction = EvmV1Decoder.decodeCommonTxFields(encodedTransaction);
-        if (
-            transaction.toIsNull || transaction.to != SOURCE_VAULT || transaction.from != SOURCE_PAYOUT_OPERATOR
-                || transaction.value != 0
-        ) revert InvalidPayoutTransaction();
+        bool directPayout = !transaction.toIsNull && transaction.to == SOURCE_VAULT;
+        bool routedPayout = !transaction.toIsNull && SOURCE_EXECUTOR != address(0) && transaction.to == SOURCE_EXECUTOR;
+        if ((!directPayout && !routedPayout) || transaction.from != SOURCE_PAYOUT_OPERATOR || transaction.value != 0) {
+            revert InvalidPayoutTransaction();
+        }
 
-        (bytes32 callRedemptionId, address callRecipient, uint256 callAmount) = _decodePayoutCalldata(transaction.data);
+        bytes32 callRedemptionId;
+        address callRecipient;
+        uint256 callAmount;
+        if (directPayout) {
+            (callRedemptionId, callRecipient, callAmount) = _decodePayoutCalldata(transaction.data);
+        }
         EvmV1Decoder.ReceiptFields memory receipt = EvmV1Decoder.decodeReceiptFields(encodedTransaction);
         if (receipt.receiptStatus != 1) revert InvalidReceiptStatus(receipt.receiptStatus);
 
@@ -227,8 +233,12 @@ contract IssuerControllerV2 is ProofReserveController {
             payout = _decodePayoutLog(logEntry);
         }
         if (!found) revert NoPayoutLog();
-        if (payout.redemptionId != callRedemptionId || payout.recipient != callRecipient || payout.amount != callAmount)
-        {
+        if (
+            directPayout
+                && (payout.redemptionId != callRedemptionId
+                    || payout.recipient != callRecipient
+                    || payout.amount != callAmount)
+        ) {
             revert InvalidPayoutLog();
         }
         if (payout.operator != transaction.from) revert InvalidPayoutLog();
