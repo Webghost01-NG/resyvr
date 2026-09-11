@@ -86,8 +86,9 @@ let issuance;
 let sourceVaultDeployment;
 let v2Deployments;
 let portfolioRequest = 0;
+let actionsBound = false;
+let walletProviderBound = false;
 let proofRequest = 0;
-let payoutProofRequest = 0;
 let payoutProofRequest = 0;
 
 function byId(id) {
@@ -252,25 +253,34 @@ async function fetchJson(path) {
 }
 
 async function publicRpc(rpcUrl, method, params = []) {
-  const controller = new AbortController();
-  const timeout = window.setTimeout(() => controller.abort(), 10_000);
-  try {
-    const response = await fetch(rpcUrl, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
-      signal: controller.signal,
-    });
-    if (!response.ok) throw new Error(`${method} returned HTTP ${response.status}`);
-    const payload = await response.json();
-    if (payload.error) throw new Error(payload.error.message || `${method} failed`);
-    return payload.result;
-  } catch (error) {
-    if (error?.name === "AbortError") throw new Error(`${method} timed out`);
-    throw error;
-  } finally {
-    window.clearTimeout(timeout);
+  const candidates = [rpcUrl];
+  if (rpcUrl === networks?.source?.rpcUrl
+    && networks.source.archiveRpcUrl
+    && networks.source.archiveRpcUrl !== rpcUrl) {
+    candidates.push(networks.source.archiveRpcUrl);
   }
+  let lastError;
+  for (const candidate of candidates) {
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 10_000);
+    try {
+      const response = await fetch(candidate, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
+        signal: controller.signal,
+      });
+      if (!response.ok) throw new Error(`${method} returned HTTP ${response.status}`);
+      const payload = await response.json();
+      if (payload.error) throw new Error(payload.error.message || `${method} failed`);
+      return payload.result;
+    } catch (error) {
+      lastError = error?.name === "AbortError" ? new Error(`${method} timed out`) : error;
+    } finally {
+      window.clearTimeout(timeout);
+    }
+  }
+  throw lastError;
 }
 
 async function contractCall(rpcUrl, address, data) {
@@ -282,7 +292,7 @@ const chainDefinitions = {
     chainId: `0x${Number(networks.source.chainId).toString(16)}`,
     chainName: networks.source.name,
     nativeCurrency: { name: "Sepolia Ether", symbol: "ETH", decimals: 18 },
-    rpcUrls: [networks.source.rpcUrl],
+    rpcUrls: [networks.source.rpcUrl, networks.source.archiveRpcUrl].filter(Boolean),
     blockExplorerUrls: [networks.source.explorerUrl],
   }),
   destination: () => ({
@@ -1094,6 +1104,7 @@ async function connectWallet() {
     setConnectedAccount(accounts[0] || null);
     flow.chainId = Number.parseInt(await window.ethereum.request({ method: "eth_chainId" }), 16);
     await refreshReserveFunds().catch(() => {});
+    bindWalletProviderEvents();
     render();
     emitIssuerView();
     void refreshIssuerPortfolio();
@@ -1981,6 +1992,8 @@ function formatNative(value) {
 }
 
 function bindActions() {
+  if (actionsBound) return;
+  actionsBound = true;
   byId("connect-wallet").addEventListener("click", connectWallet);
   byId("deploy-source-vault").addEventListener("click", deploySourceVault);
   byId("load-pilot").addEventListener("click", loadPilotIssuer);
@@ -2016,7 +2029,48 @@ function bindActions() {
   byId("finalize-redemption").addEventListener("click", finalizeRedemption);
 }
 
+function bindWalletProviderEvents() {
+  if (!window.ethereum || walletProviderBound) return;
+  walletProviderBound = true;
+  window.ethereum.on?.("accountsChanged", (nextAccounts) => {
+    setConnectedAccount(nextAccounts[0] || null);
+    void recoverPendingAction();
+    void refreshReserveFunds().then(render).catch(() => render());
+    void recoverSourceVaultDeployment();
+    void refreshIssuerPortfolio();
+    render();
+    emitIssuerView();
+  });
+  window.ethereum.on?.("chainChanged", (nextChainId) => {
+    flow.chainId = Number.parseInt(nextChainId, 16);
+    render();
+  });
+}
+
+async function hydrateWalletProvider() {
+  if (!window.ethereum) return false;
+  bindWalletProviderEvents();
+  try {
+    const accounts = await window.ethereum.request({ method: "eth_accounts" });
+    setConnectedAccount(accounts[0] || null);
+    flow.chainId = Number.parseInt(await window.ethereum.request({ method: "eth_chainId" }), 16);
+    await recoverPendingAction();
+    await refreshReserveFunds().catch(() => {});
+    void recoverSourceVaultDeployment();
+    void refreshIssuerPortfolio();
+    render();
+    emitIssuerView();
+  } catch (error) {
+    byId("signature-effect").textContent = `MetaMask is available. Click Connect wallet to retry: ${friendlyError(error)}`;
+  }
+  return true;
+}
+
 async function initialize() {
+  bindActions();
+  const connectButton = byId("connect-wallet");
+  connectButton.disabled = true;
+  connectButton.textContent = "Loading wallet…";
   const search = new URLSearchParams(window.location.search);
   if (search.get("reset") === "1") {
     localStorage.removeItem(STORAGE_KEY);
@@ -2033,34 +2087,17 @@ async function initialize() {
   if (flow.mode === "new" && !flow.controller && flow.sourceExecutor === ZERO_ADDRESS) {
     flow.sourceExecutor = networks.source.transactionExecutor || ZERO_ADDRESS;
   }
-  await resolveIssuerAddresses();
+  try {
+    await resolveIssuerAddresses();
+  } catch (error) {
+    byId("signature-effect").textContent = `Saved issuer refresh is temporarily unavailable. Wallet connection still works: ${friendlyError(error)}`;
+  }
   if (search.get("pilot") === "1") await loadPilotIssuer();
-  bindActions();
+  connectButton.disabled = false;
 
-  if (window.ethereum) {
-    const accounts = await window.ethereum.request({ method: "eth_accounts" });
-    setConnectedAccount(accounts[0] || null);
-    flow.chainId = Number.parseInt(await window.ethereum.request({ method: "eth_chainId" }), 16);
-    await recoverPendingAction();
-    await refreshReserveFunds().catch(() => {});
-    void recoverSourceVaultDeployment();
-    void refreshIssuerPortfolio();
-    window.ethereum.on?.("accountsChanged", (nextAccounts) => {
-      setConnectedAccount(nextAccounts[0] || null);
-      void recoverPendingAction();
-      void refreshReserveFunds().then(render).catch(() => render());
-      void recoverSourceVaultDeployment();
-      void refreshIssuerPortfolio();
-      render();
-      emitIssuerView();
-    });
-    window.ethereum.on?.("chainChanged", (nextChainId) => {
-      flow.chainId = Number.parseInt(nextChainId, 16);
-      render();
-    });
-  } else {
-    byId("connect-wallet").disabled = true;
+  if (!(await hydrateWalletProvider())) {
     byId("signature-effect").textContent = "MetaMask was not detected. Live read-only evidence remains available.";
+    window.addEventListener("ethereum#initialized", () => void hydrateWalletProvider(), { once: true });
   }
   render();
   emitIssuerView();
@@ -2068,5 +2105,6 @@ async function initialize() {
 
 initialize().catch((error) => {
   byId("signature-effect").textContent = `Wallet flow unavailable: ${friendlyError(error)}`;
-  byId("connect-wallet").disabled = true;
+  byId("connect-wallet").disabled = !networks;
+  byId("connect-wallet").textContent = "Connect wallet ↗";
 });
