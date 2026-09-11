@@ -42,12 +42,14 @@ These tests use a deterministic verifier stub to isolate the controller's
 semantic and state-transition logic. The live CC3 evidence separately exercises
 Creditcoin's Block Prover precompile with a real Sepolia transaction proof.
 
-## V2 redemption prototype
+## V2 redemption lifecycle
 
 `RedemptionV2.t.sol` additionally requires that both chain factories derive the
 same canonical source vault and rejects arbitrary vaults or payout operators.
 It tests exact reserve payout, escrow and burn accounting, payout-query and
 redemption-ID replay, failed receipts, mismatched recipients and amounts,
 fee-on-transfer reserve behavior, pause behavior, and CTC bond locking until all
-issued supply is redeemed. These are local prototype tests; they are not live
-V2 deployment evidence.
+issued supply is redeemed. These tests isolate contract behavior; the separate
+`npm run evidence:v2:pilot` verifier reproduces 93 checks against the deployed
+factories and completed live deposit, mint, payout, proof-finalization, and burn
+transactions.

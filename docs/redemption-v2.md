@@ -89,7 +89,7 @@ This choice leaves an explicit issuer-liveness risk: the holder's tokens remain
 escrowed until the issuer pays. A future cancellation protocol requires a
 separate challenge and non-payment proof design.
 
-## Prototype contracts
+## V2 contracts
 
 - `SourceReserveVaultFactoryV2.sol` — canonical source-vault deployment;
 - `SourceReserveVaultV2.sol` — exact deposits and identified payouts;
@@ -118,8 +118,10 @@ versioned evidence in `config/v2-deployments.json`.
 
 The configured source executor supports direct and MetaMask-routed source
 transactions while retaining strict canonical event validation. The guided
-pilot recovers a confirmed source deposit after a refresh or factory migration, so it
-never asks the wallet to lock the same reserve twice.
+flow records submitted hashes before receipt polling and reconstructs issuer,
+deposit, mint, redemption, payout, and finalization state from on-chain logs
+after a refresh. It therefore does not ask a wallet to repeat a confirmed
+reserve movement.
 
 ## Deployment order
 
@@ -136,7 +138,9 @@ forge script --root contracts script/DeployIssuerFactoryV2.s.sol \
 ```
 
 The source factory must be deployed first because its address is immutable in
-the Creditcoin V2 factory. The factories are live. The guided
-[`v2-pilot.html`](../dashboard/v2-pilot.html) flow creates and records the first
-canonical issuer and real issuance/redemption lifecycle; final transaction
-evidence is published only after every on-chain step confirms.
+the Creditcoin V2 factory. Both factories and the complete round trip are live.
+The public [Judge Evidence page](https://webghost01-ng.github.io/resyvr/dashboard/judge-evidence.html)
+shows every address, transaction, proof result, and accounting transition. The
+versioned [`v2-pilot.json`](../config/v2-pilot.json) record is independently
+reproduced by `npm run evidence:v2:pilot`, which currently performs 93 live
+checks across Sepolia and Creditcoin.

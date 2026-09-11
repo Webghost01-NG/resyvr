@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Publicly verifiable evidence for Resyvr's complete V2 reserve issuance and redemption lifecycle." />
+    <title>Resyvr — Judge Evidence</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./judge-evidence.css?v=1" />
+  </head>
+  <body>
+    <header class="site-header">
+      <nav class="shell" aria-label="Evidence navigation">
+        <a class="brand" href="./"><span>R</span> RESYVR</a>
+        <div class="nav-links">
+          <a href="./">Dashboard</a>
+          <a href="./#launch">Issue V2 asset</a>
+          <a href="./#redemption">Redeem</a>
+        </div>
+        <a class="outline-link" href="../config/v2-pilot.json">RAW EVIDENCE ↗</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero shell">
+        <div>
+          <p class="eyebrow">JUDGE EVIDENCE · LIVE V2 TESTNET LIFECYCLE</p>
+          <h1>Reserve in.<br />Token out.<br /><em>Reserve back.</em></h1>
+          <p class="hero-copy">A real Sepolia reserve deposit authorized an exact Creditcoin mint. The holder then escrowed the token, received the reserve, and an Attestcoin payout proof burned the matching supply.</p>
+          <div class="hero-actions">
+            <button id="verify-live" type="button">Run live verification</button>
+            <a href="#transactions">Inspect every transaction ↓</a>
+          </div>
+        </div>
+        <aside class="verdict-card">
+          <div class="status-row"><span class="pulse"></span><span id="verification-label">Loading recorded evidence…</span></div>
+          <strong id="verification-score">—</strong>
+          <p id="verification-detail">Checking both public testnets independently.</p>
+          <dl>
+            <div><dt>Reserve deposited</dt><dd>0.1 test USDC</dd></div>
+            <div><dt>Token minted</dt><dd>0.1 rvUSD2</dd></div>
+            <div><dt>Reserve returned</dt><dd>0.1 test USDC</dd></div>
+            <div><dt>Final supply</dt><dd>0 rvUSD2</dd></div>
+          </dl>
+        </aside>
+      </section>
+
+      <section class="proof-strip" aria-label="Completed lifecycle">
+        <div class="shell proof-grid">
+          <article><span>01</span><small>SEPOLIA</small><h2>Reserve locked</h2><p>Canonical factory-created vault records the exact deposit.</p></article>
+          <article><span>02</span><small>ATTESTCOIN</small><h2>Deposit proven</h2><p>Source transaction and receipt become Creditcoin-verifiable calldata.</p></article>
+          <article><span>03</span><small>CREDITCOIN</small><h2>Token minted</h2><p>Controller accepts the proof once and mints the exact amount.</p></article>
+          <article><span>04</span><small>CROSS-CHAIN EXIT</small><h2>Redeemed + burned</h2><p>USDC payout is proven before escrowed supply is destroyed.</p></article>
+        </div>
+      </section>
+
+      <section class="shell evidence-section" id="contracts">
+        <div class="section-heading">
+          <div><p class="eyebrow">DEPLOYED SYSTEM</p><h2>Contracts you can inspect.</h2></div>
+          <p>Every address links directly to its chain explorer. The V2 factories and pilot contracts contain real testnet bytecode.</p>
+        </div>
+        <div class="evidence-table" id="contract-list" aria-live="polite"></div>
+      </section>
+
+      <section class="transactions-section" id="transactions">
+        <div class="shell">
+          <div class="section-heading">
+            <div><p class="eyebrow">COMPLETE TRANSACTION TRAIL</p><h2>Eleven actions. Two chains. No missing middle.</h2></div>
+            <p>The trail includes setup, reserve lock, proof-backed mint, redemption escrow, reserve payout, and payout-proof finalization.</p>
+          </div>
+          <div class="transaction-list" id="transaction-list" aria-live="polite"></div>
+        </div>
+      </section>
+
+      <section class="shell evidence-section">
+        <div class="section-heading">
+          <div><p class="eyebrow">PROOF + FINAL STATE</p><h2>The accounting returns to zero.</h2></div>
+          <p>Recorded values are checked against current public RPC responses whenever live verification runs.</p>
+        </div>
+        <div class="result-grid">
+          <article><small>DEPOSIT PROOF</small><strong>7 + 10</strong><p>Merkle siblings + continuity roots</p></article>
+          <article><small>PAYOUT PROOF</small><strong>8 + 13</strong><p>Merkle siblings + continuity roots</p></article>
+          <article><small>NET VERIFIED RESERVE</small><strong id="net-reserve">0</strong><p>rvUSD2 base units after redemption</p></article>
+          <article><small>FINAL TOKEN SUPPLY</small><strong id="token-supply">0</strong><p>rvUSD2 base units after burn</p></article>
+          <article><small>PENDING REDEMPTION</small><strong id="pending-redemption">0</strong><p>Nothing remains in escrow</p></article>
+          <article><small>SOURCE RESERVE</small><strong id="source-reserve">0</strong><p>USDC base units after payout</p></article>
+        </div>
+        <div class="check-list" id="live-checks" aria-live="polite"></div>
+      </section>
+
+      <section class="boundary-section">
+        <div class="shell">
+          <div class="section-heading">
+            <div><p class="eyebrow">HONEST TRUST BOUNDARY</p><h2>What this proof establishes.</h2></div>
+            <p>Resyvr verifies on-chain facts. It does not turn every external business promise into code.</p>
+          </div>
+          <div class="boundary-grid">
+            <article><h3>Proven</h3><p>Canonical vault provenance, successful reserve deposit, exact beneficiary and amount, one-time proof use, exact payout terms, token escrow, and final burn.</p></article>
+            <article><h3>Issuer custody</h3><p>The issuer administers the Sepolia reserve vault and must execute a valid redemption payout. V2 removes arbitrary vault code, but issuer availability remains operational trust.</p></article>
+            <article><h3>Default + legal</h3><p>There is no automatic compensation, liquidation, legal claim enforcement, or fiat conversion. Those controls belong to the RWA issuer and its jurisdiction.</p></article>
+            <article><h3>Testnet + latency</h3><p>The pilot uses valueless test USDC and CTC. Attestcoin finality introduces a visible delay between a Sepolia action and its Creditcoin proof.</p></article>
+            <article><h3>CTC stake</h3><p>The 1 CTC bond is an activation and accountability stake. It has liability-aware release rules, but no slashing or insurance payout mechanism.</p></article>
+            <article><h3>Version boundary</h3><p>V2 is the current product path. V1 remains public as historical issuance-only evidence and cannot be upgraded into redemption.</p></article>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="shell">
+      <span>RESYVR · RWA INFRASTRUCTURE ON CREDITCOIN</span>
+      <a href="https://github.com/Webghost01-NG/resyvr">SOURCE CODE ↗</a>
+    </footer>
+    <script type="module" src="./judge-evidence.js?v=1"></script>
+  </body>
+</html>

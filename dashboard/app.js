@@ -1,5 +1,6 @@
 const selectors = {
   totalVerifiedReserve: "0x884d15ee",
+  netVerifiedReserve: "0x0a7c6aa0",
   issuancePaused: "0xc691af92",
   token: "0xfc0c546a",
   bondVault: "0x990826b3",
@@ -83,6 +84,24 @@ function setPendingLink(id, label) {
   link.classList.add("muted");
 }
 
+function setInternalLink(id, href, label) {
+  const link = byId(id);
+  link.classList.remove("muted");
+  link.href = href;
+  link.textContent = label;
+  link.removeAttribute("target");
+  link.removeAttribute("rel");
+}
+
+function setPlainText(id, label) {
+  const link = byId(id);
+  link.classList.remove("muted");
+  link.removeAttribute("href");
+  link.removeAttribute("target");
+  link.removeAttribute("rel");
+  link.textContent = label;
+}
+
 async function fetchJson(path) {
   const response = await fetch(path, { cache: "no-store" });
   if (!response.ok) throw new Error(`${path} returned HTTP ${response.status}`);
@@ -130,6 +149,8 @@ function applyTrackedEvidence(networks, pilot, deployment) {
   setText("coverage-title", "What the chain can prove now");
   document.querySelector("#coverage .source-note").textContent = "Live values use read-only JSON-RPC against the deployed pilot issuer contracts.";
   setText("proof-title", "One deposit. Three inspectable steps.");
+  setText("attestation-description", "The issuance proof binds the source transaction, receipt, event fields, and finalized continuity roots.");
+  setText("destination-evidence-description", "Creditcoin consumed both issuance replay keys and increased confirmed reserve by the proven event amount.");
   setText("source-evidence-status", sourceTransaction ? "Reserve locked" : "Vault configured");
   byId("source-evidence-status").className = `status ${sourceTransaction ? "verified-status" : "waiting-status"}`;
   setText("source-evidence-title", sourceTransaction ? "Reserve locked" : "Reserve not locked");
@@ -150,12 +171,13 @@ function applyTrackedEvidence(networks, pilot, deployment) {
   setText("merkle-siblings", String(deployment.proof?.merkleSiblings ?? "—"));
   setText("continuity-roots", String(deployment.proof?.continuityRoots ?? "—"));
   setText("replay-result", deployment.verifiedState?.replayCallError || "Not tested");
-  setText(
-    "attestation-detail",
-    proofTransaction
-      ? `${deployment.proof?.transactionBytes?.toLocaleString("en-US") || "—"} proof bytes accepted on CC3`
-      : "Waiting for an attested source block and proof submission",
-  );
+  if (proofTransaction) {
+    setPlainText("attestation-detail", `${deployment.proof?.transactionBytes?.toLocaleString("en-US") || "—"} proof bytes accepted on CC3`);
+  } else if (sourceTransaction) {
+    setInternalLink("attestation-detail", "#launch", "Reserve confirmed — continue proof in launchpad ↑");
+  } else {
+    setPendingLink("attestation-detail", "Waiting for a reserve deposit");
+  }
 
   const attestationStatus = byId("attestation-status");
   attestationStatus.textContent = proofTransaction ? "Proof accepted" : "Waiting for attestation";
@@ -186,6 +208,50 @@ function applyTrackedEvidence(networks, pilot, deployment) {
   setText("reserve-detail", "Tracked on-chain evidence · refreshing live value");
 }
 
+function applyV2Evidence(networks, evidence) {
+  const sourceExplorer = networks.source.explorerUrl;
+  const destinationExplorer = networks.destination.explorerUrl;
+  document.querySelector(".token-core .token-symbol").textContent = "rv";
+  document.querySelector(".token-core strong").textContent = "USD2";
+  setText("coverage-title", "Live V2 state after complete redemption");
+  document.querySelector("#coverage .source-note").textContent = "Current public RPC reads from the completed V2 controller, token, and liability-aware CTC stake.";
+  setText("proof-title", "V2 issuance and redemption trail");
+
+  setText("source-evidence-status", "Reserve returned");
+  byId("source-evidence-status").className = "status verified-status";
+  setText("source-evidence-title", "Reserve locked, then paid out");
+  setText("source-evidence-description", "The canonical Sepolia vault received 0.1 test USDC and later returned the exact amount to the named redemption recipient.");
+  setText("source-block", Number(evidence.source.depositReserve.blockNumber).toLocaleString("en-US"));
+  setText("deposit-id", evidence.source.depositId);
+  byId("deposit-id").title = evidence.source.depositId;
+  setLink("source-transaction-link", `${sourceExplorer}/tx/${evidence.source.depositReserve.transactionHash}`, "Inspect reserve deposit ↗");
+
+  setText("attestation-status", "Two proofs accepted");
+  byId("attestation-status").className = "status verified-status";
+  setText("attestation-description", "Attestcoin proved both the Sepolia reserve deposit and the later redemption payout before Creditcoin changed state.");
+  setText("merkle-siblings", `${evidence.proofs.deposit.merkleSiblings} deposit · ${evidence.proofs.payout.merkleSiblings} payout`);
+  setText("continuity-roots", `${evidence.proofs.deposit.continuityRoots} deposit · ${evidence.proofs.payout.continuityRoots} payout`);
+  setInternalLink("attestation-detail", "./judge-evidence.html", "Open every V2 proof and transaction ↗");
+
+  setText("proof-block", Number(evidence.destination.finalizeRedemption.blockNumber).toLocaleString("en-US"));
+  setText("replay-result", "Deposit + payout queries consumed");
+  setText("destination-evidence-status", "Supply burned");
+  byId("destination-evidence-status").className = "status verified-status";
+  setText("destination-evidence-title", "Redemption finalized");
+  setText("destination-evidence-description", "Creditcoin consumed the payout proof once, completed the redemption, and burned the escrowed rvUSD2 supply.");
+  setLink("proof-transaction-link", `${destinationExplorer}/tx/${evidence.destination.finalizeRedemption.transactionHash}`, "Inspect payout-proof finalization ↗");
+
+  setText("issuer-id", evidence.issuerId);
+  setText("source-chain-key", `${networks.source.attestcoinChainKey} · ${networks.source.name}`);
+  setLink("source-vault-link", `${sourceExplorer}/address/${evidence.source.vault}`, shortHex(evidence.source.vault));
+  setLink("reserve-asset-link", `${sourceExplorer}/address/${networks.source.reserveAsset.address}`, shortHex(networks.source.reserveAsset.address));
+  setLink("controller-link", `${destinationExplorer}/address/${evidence.destination.controller}`, shortHex(evidence.destination.controller));
+  setLink("header-contract-link", `${destinationExplorer}/address/${evidence.destination.controller}`, "View V2 contract ↗");
+
+  setText("reserve-value", `${formatUnits(BigInt(evidence.finalState.netVerifiedReserve), evidence.decimals)} ${networks.source.reserveAsset.symbol}`);
+  setText("reserve-detail", "Net proven reserve after the complete redemption · refreshing live value");
+}
+
 function applySelectedIssuerEvidence(networks, issuer) {
   const sourceExplorer = networks.source.explorerUrl;
   const destinationExplorer = networks.destination.explorerUrl;
@@ -196,6 +262,10 @@ function applySelectedIssuerEvidence(networks, issuer) {
   setText("coverage-title", `What ${symbol} can prove now`);
   document.querySelector("#coverage .source-note").textContent = `Live values for ${issuer.name || symbol} use its selected CC3 controller.`;
   setText("proof-title", `${symbol} issuance trail`);
+  setText("attestation-description", `${symbol} uses an Attestcoin source proof before Creditcoin can record reserve and mint.`);
+  setText("destination-evidence-description", issuer.protocolVersion === 2
+    ? "The V2 controller records proven reserve, mints the exact amount, and can later burn supply after a proven payout."
+    : "The historical V1 controller records proven reserve and mints the exact amount; it does not implement redemption.");
 
   const reserveLocked = Boolean(issuer.depositTransaction && issuer.depositBlock && issuer.depositId);
   setText("source-evidence-status", reserveLocked ? "Reserve locked" : "Vault configured");
@@ -222,16 +292,26 @@ function applySelectedIssuerEvidence(networks, issuer) {
   attestationStatus.className = `status ${proofAccepted ? "verified-status" : "waiting-status"}`;
   setText("merkle-siblings", proofAccepted ? "Verified" : "—");
   setText("continuity-roots", proofAccepted ? "Verified" : "—");
-  setText("attestation-detail", proofAccepted ? "Proof accepted by the selected issuer controller" : "Complete the reserve deposit and generate its Attestcoin proof");
+  if (proofAccepted) {
+    setPlainText("attestation-detail", "Proof accepted by the selected issuer controller");
+  } else if (reserveLocked) {
+    setInternalLink("attestation-detail", "#launch", "Reserve confirmed — continue proof in launchpad ↑");
+  } else {
+    setPendingLink("attestation-detail", "Waiting for a reserve deposit");
+  }
   setText("proof-block", proofAccepted ? "Confirmed" : "Pending");
   setText("replay-result", proofAccepted ? "Consumed" : "Not submitted");
   setText("destination-evidence-status", proofAccepted ? "State updated" : "Waiting for proof");
   byId("destination-evidence-status").className = `status ${proofAccepted ? "verified-status" : "waiting-status"}`;
-  setText("destination-evidence-title", proofAccepted ? "Reserve recorded" : "Reserve not recorded");
+  setText("destination-evidence-title", proofAccepted ? "Reserve recorded" : reserveLocked ? "Awaiting proof submission" : "Waiting for reserve");
   if (issuer.proofTransaction) {
     setLink("proof-transaction-link", `${destinationExplorer}/tx/${issuer.proofTransaction}`, "Inspect Creditcoin transaction ↗");
   } else {
-    setPendingLink("proof-transaction-link", "Proof submission pending");
+    if (reserveLocked) {
+      setInternalLink("proof-transaction-link", "#launch", "Continue proof in issuer launchpad ↑");
+    } else {
+      setPendingLink("proof-transaction-link", "Proof submission waits for a reserve deposit");
+    }
   }
 
   setText("issuer-id", issuer.issuerId);
@@ -273,9 +353,10 @@ function activeDeployment(baseDeployment, issuance) {
 async function loadLiveState(networks, deployment, requestId) {
   const rpcUrl = networks.destination.rpcUrl;
   const controllerAddress = deployment.address;
+  const reserveSelector = deployment.protocolVersion === 2 ? selectors.netVerifiedReserve : selectors.totalVerifiedReserve;
   const [blockNumberHex, reserveHex, issuerId, sourceChainKeyHex, sourceVaultHex, reserveAssetHex] = await Promise.all([
     rpc(rpcUrl, "eth_blockNumber"),
-    contractCall(rpcUrl, controllerAddress, selectors.totalVerifiedReserve),
+    contractCall(rpcUrl, controllerAddress, reserveSelector),
     contractCall(rpcUrl, controllerAddress, selectors.issuerId),
     contractCall(rpcUrl, controllerAddress, selectors.sourceChainKey),
     contractCall(rpcUrl, controllerAddress, selectors.sourceVault),
@@ -331,8 +412,13 @@ async function loadLiveState(networks, deployment, requestId) {
         ? `Live issuer token · ${shortHex(tokenAddress)}`
         : `Your balance ${formatUnits(holderBalance, tokenDecimals)} ${deployment.symbol} · ${shortHex(tokenAddress)}`,
     );
-    setText("coverage-value", coveragePercent(reserve, supply) || "No supply");
-    setText("coverage-detail", supply === 0n ? "Coverage starts when proven minting begins." : "Confirmed reserve ÷ current token supply");
+    setText("coverage-value", coveragePercent(reserve, supply) || (deployment.protocolVersion === 2 ? "Settled" : "No supply"));
+    setText(
+      "coverage-detail",
+      supply === 0n
+        ? deployment.protocolVersion === 2 ? "No outstanding supply or net reserve after redemption." : "Coverage starts when proven minting begins."
+        : "Net proven reserve ÷ current token supply",
+    );
   } else {
     setText("supply-value", "Pending");
     setText("supply-detail", "Current pilot controller records reserve; issuer token deployment is not claimed.");
@@ -379,11 +465,12 @@ async function refresh() {
   document.body.dataset.state = "waiting";
 
   try {
-    const [networks, pilot, baseDeployment, issuance] = await Promise.all([
+    const [networks, pilot, baseDeployment, issuance, v2Pilot] = await Promise.all([
       fetchJson("../config/networks.json"),
       fetchJson("../config/pilot.json"),
       fetchJson("../docs/deployments/creditcoin.json"),
       fetchJson("../config/issuance.json"),
+      fetchJson("../config/v2-pilot.json"),
     ]);
     if (requestId !== refreshRequest) return;
     let deployment;
@@ -394,6 +481,7 @@ async function refresh() {
         address: selectedIssuer.controller,
         holder: selectedIssuer.account,
         symbol: selectedIssuer.symbol,
+        protocolVersion: selectedIssuer.protocolVersion,
         viewLabel: `${selectedIssuer.name || selectedIssuer.symbol} (${selectedIssuer.symbol})`,
         configuration: {
           issuerId: selectedIssuer.issuerId,
@@ -403,8 +491,21 @@ async function refresh() {
         },
       };
     } else {
-      deployment = activeDeployment(baseDeployment, issuance);
-      applyTrackedEvidence(networks, pilot, deployment);
+      deployment = {
+        contract: "IssuerController",
+        address: v2Pilot.destination.controller,
+        holder: v2Pilot.administrator,
+        symbol: v2Pilot.tokenSymbol,
+        protocolVersion: 2,
+        viewLabel: "completed V2 lifecycle",
+        configuration: {
+          issuerId: v2Pilot.issuerId,
+          sourceChainKey: networks.source.attestcoinChainKey,
+          sourceVault: v2Pilot.source.vault,
+          reserveAsset: networks.source.reserveAsset.address,
+        },
+      };
+      applyV2Evidence(networks, v2Pilot);
     }
     await loadLiveState(networks, deployment, requestId);
   } catch (error) {

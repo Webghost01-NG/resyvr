@@ -3,11 +3,11 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Launch proof-backed assets on Creditcoin with verifiable reserves and native CTC bonds." />
+    <meta name="description" content="Issue and redeem proof-backed RWA tokens on Creditcoin through canonical Sepolia reserves and Attestcoin proofs." />
     <meta name="theme-color" content="#080914" />
-    <title>Resyvr — Proof-backed issuance on Creditcoin</title>
+    <title>Resyvr — Proof protocol for proof-backed RWAs</title>
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="./styles.css?v=6" />
+    <link rel="stylesheet" href="./styles.css?v=7" />
   </head>
   <body>
     <div class="page-noise" aria-hidden="true"></div>
@@ -23,7 +23,8 @@
         <a href="#proof">How it works</a>
         <a href="#coverage">Live proof</a>
         <a href="#launch">Issue an asset</a>
-        <a href="./v2-pilot.html">V2 redemption</a>
+        <a href="#redemption">Redeem an asset</a>
+        <a href="./judge-evidence.html">Judge evidence</a>
       </nav>
       <a class="network-pill" id="header-contract-link" href="#configuration"><span aria-hidden="true"></span>CC3 live</a>
     </header>
@@ -31,18 +32,18 @@
     <main id="top">
       <section class="hero shell" aria-labelledby="page-title">
         <div class="hero-copy-block reveal">
-          <p class="eyebrow"><span>RWA issuance infrastructure</span><span>Built on Creditcoin</span></p>
-          <h1 id="page-title">Assets that<br />prove their<br /><em>backing.</em></h1>
+          <p class="eyebrow"><span>V2 RWA issuance + redemption</span><span>Built on Creditcoin</span></p>
+          <h1 id="page-title">Assets that<br />prove the full<br /><em>lifecycle.</em></h1>
           <p class="hero-copy">
-            Create a token, lock its reserve, and let cryptographic proof decide what can be minted.
-            Every asset gets an isolated controller, a CTC bond, and a public trail.
+            Lock reserve, mint the exact proven amount, return the reserve on redemption, then burn supply only after payout proof.
+            Every new asset uses a canonical V2 vault, isolated controller, CTC activation stake, and public trail.
           </p>
           <div class="hero-actions">
             <a class="primary-cta" href="#launch">Launch an issuer <span>↗</span></a>
-            <a class="secondary-cta" href="#proof">See the live proof <span>↓</span></a>
+            <a class="secondary-cta" href="./judge-evidence.html">Judge evidence <span>↗</span></a>
           </div>
           <div class="hero-footnote">
-            <span>01 / Testnet pilot</span>
+            <span>01 / Live V2 testnet cycle</span>
             <span id="updated-at">Checking live state…</span>
           </div>
         </div>
@@ -77,7 +78,7 @@
 
         <div class="metrics">
           <article class="metric featured">
-            <p class="label">Confirmed reserve</p>
+            <p class="label">Net proven reserve</p>
             <p class="metric-value" id="reserve-value">—</p>
             <p class="metric-detail" id="reserve-detail">Reading ProofReserveController…</p>
           </article>
@@ -87,12 +88,12 @@
             <p class="metric-detail" id="supply-detail">Checking issuer token deployment…</p>
           </article>
           <article class="metric">
-            <p class="label">On-chain coverage</p>
+            <p class="label">Proof-accounting coverage</p>
             <p class="metric-value" id="coverage-value">—</p>
             <p class="metric-detail" id="coverage-detail">Requires a live issuer token.</p>
           </article>
           <article class="metric">
-            <p class="label">Native CTC bond</p>
+            <p class="label">CTC activation stake</p>
             <p class="metric-value" id="bond-value">—</p>
             <p class="metric-detail" id="bond-detail">Checking bond vault deployment…</p>
           </article>
@@ -103,7 +104,7 @@
         <div class="section-heading">
           <div>
             <p class="kicker">Proof trail</p>
-            <h2 id="proof-title">One deposit. Three inspectable steps.</h2>
+            <h2 id="proof-title">One round trip. Every step inspectable.</h2>
           </div>
           <div class="legend" aria-label="Evidence status legend">
             <span><i class="dot verified"></i>Verified</span>
@@ -129,12 +130,12 @@
           <article class="proof-card">
             <div class="step-line"><span>02</span><span class="status verified-status" id="attestation-status">Proof accepted</span></div>
             <h3>Attestcoin verified</h3>
-            <p>The submitted proof binds the source transaction, receipt, event fields, and finalized continuity roots.</p>
+            <p id="attestation-description">Two proofs bind the reserve deposit and redemption payout to their exact source receipts and finalized continuity roots.</p>
             <dl>
               <div><dt>Merkle siblings</dt><dd id="merkle-siblings">—</dd></div>
               <div><dt>Continuity roots</dt><dd id="continuity-roots">—</dd></div>
             </dl>
-            <span class="evidence-link muted" id="attestation-detail">Waiting for evidence file…</span>
+            <a class="evidence-link muted" id="attestation-detail" href="#launch">Continue in issuer launchpad ↑</a>
           </article>
 
           <span class="connector" aria-hidden="true">→</span>
@@ -142,7 +143,7 @@
           <article class="proof-card">
             <div class="step-line"><span>03</span><span class="status verified-status" id="destination-evidence-status">State updated</span></div>
             <h3 id="destination-evidence-title">Reserve recorded</h3>
-            <p>Creditcoin consumed both replay keys and increased confirmed reserve by the proven event amount.</p>
+            <p id="destination-evidence-description">Creditcoin minted from the deposit proof, then finalized redemption and burned supply only after the payout proof.</p>
             <dl>
               <div><dt>CC3 block</dt><dd id="proof-block">—</dd></div>
               <div><dt>Replay result</dt><dd id="replay-result">—</dd></div>
@@ -158,7 +159,7 @@
             <p class="kicker">Issuer launchpad</p>
             <h2 id="launch-title">Issue your own<br />proof-backed token.</h2>
           </div>
-          <p class="source-note">Connect once, define the asset, and follow six explicit transactions across Sepolia and Creditcoin.</p>
+          <p class="source-note">Every new asset uses V2. Create its canonical reserve vault, mint repeatedly from proven deposits, and redeem from the same page.</p>
         </div>
 
         <div class="issuer-console">
@@ -186,7 +187,7 @@
             </div>
             <div class="asset-builder-actions">
               <p class="draft-id"><span>Issuer ID</span><strong class="mono" id="issuer-draft-id">Generated when you deploy</strong></p>
-              <button class="quiet-button" id="load-pilot" type="button">View completed pilot</button>
+              <button class="quiet-button" id="load-pilot" type="button">View historical V1 pilot</button>
               <button class="quiet-button" id="start-new-issuer" type="button" hidden>Start a new issuer</button>
             </div>
           </div>
@@ -216,10 +217,10 @@
             <span class="launch-number">01</span>
             <div>
               <p class="network-tag">Ethereum Sepolia · 1 signature</p>
-              <h3>Deploy reserve vault</h3>
-              <p>Creates an isolated USDC vault bound to your new issuer ID. The vault cannot withdraw or change reserve assets.</p>
+              <h3>Create canonical reserve vault</h3>
+              <p>The verified V2 factory creates an isolated USDC vault bound to your issuer ID and administrator. Reserve can leave only through an identified redemption payout.</p>
               <p class="action-state" id="source-vault-state">Connect your wallet and define the token.</p>
-              <button class="action-button" id="deploy-source-vault" type="button" disabled>Deploy reserve vault</button>
+              <button class="action-button" id="deploy-source-vault" type="button" disabled>Create canonical vault</button>
             </div>
           </li>
           <li class="launch-card">
@@ -227,7 +228,7 @@
             <div>
               <p class="network-tag">Creditcoin CC3 · 1 signature</p>
               <h3>Create token system</h3>
-              <p>Uses the shared factory to deploy your controller, ERC-20 token, and native CTC bond vault.</p>
+              <p>The verified V2 factory checks canonical vault provenance, then deploys your controller, ERC-20 token, and CTC activation-stake vault.</p>
               <p class="action-state" id="create-state">A confirmed Sepolia reserve vault is required.</p>
               <button class="action-button" id="create-issuer" type="button" disabled>Create token system</button>
             </div>
@@ -237,7 +238,7 @@
             <div>
               <p class="network-tag">Creditcoin CC3 · 2 signatures</p>
               <h3>Post and activate bond</h3>
-              <p>Deposits the required native CTC into your bond vault, then activates proof-backed issuance.</p>
+              <p>Deposits the required native CTC activation stake, then enables proof-backed issuance. This stake is not holder insurance.</p>
               <p class="action-state" id="bond-state">Create the token system first.</p>
               <div class="button-row">
                 <button class="action-button" id="deposit-bond" type="button" disabled>Deposit CTC</button>
@@ -287,12 +288,65 @@
             <div>
               <p class="network-tag">Creditcoin CC3 · 1 signature</p>
               <h3>Submit proof and mint</h3>
-              <p>Submits the generated proof. Your controller mints the exact proven amount to the reserve beneficiary.</p>
+              <p>Submits the generated proof. Your V2 controller mints the exact proven amount to the beneficiary; repeat steps 04–06 for more supply.</p>
               <p class="action-state" id="mint-state">A generated proof is required.</p>
               <button class="action-button" id="submit-proof" type="button" disabled>Mint proof-backed tokens</button>
             </div>
           </li>
         </ol>
+
+        <section class="redemption-lifecycle" id="redemption" aria-labelledby="redemption-title">
+          <div class="redemption-intro">
+            <div>
+              <p class="kicker">Token redemption</p>
+              <h3 id="redemption-title">Return the token.<br />Release the reserve.</h3>
+            </div>
+            <p>Select any redeemable asset created with Resyvr V2. The holder escrows tokens, the issuer pays the named reserve recipient, Attestcoin proves that payout, and the matching supply is burned.</p>
+          </div>
+
+          <div class="redemption-layout">
+            <aside class="redemption-summary" aria-label="Selected redemption asset">
+              <p class="network-tag">Ethereum Sepolia ↔ Creditcoin CC3</p>
+              <h4 id="redemption-asset-name">Choose a V2 asset.</h4>
+              <p id="redemption-asset-detail">Create a new asset or choose “Manage issuer” below. New assets support repeated proof-backed minting and redemption.</p>
+              <dl>
+                <div><dt>Protocol</dt><dd id="redemption-version">V2 required</dd></div>
+                <div><dt>Token</dt><dd id="redemption-token">—</dd></div>
+                <div><dt>Request</dt><dd id="redemption-request-id">—</dd></div>
+              </dl>
+            </aside>
+
+            <article class="redemption-console">
+              <div class="redemption-progress-head">
+                <span><b id="redemption-step">00</b> / 05</span>
+                <span id="redemption-wallet">Wallet not connected</span>
+              </div>
+              <div class="redemption-progress" aria-hidden="true"><span id="redemption-progress-bar"></span></div>
+              <div class="redemption-fields">
+                <label for="redemption-amount">Token amount<input id="redemption-amount" value="1" inputmode="decimal" /></label>
+                <label for="redemption-recipient">Sepolia recipient<input class="mono" id="redemption-recipient" placeholder="Connected wallet" autocomplete="off" spellcheck="false" /></label>
+              </div>
+              <p class="redemption-status" id="redemption-state" aria-live="polite">Connect a wallet and select a redeemable asset.</p>
+              <div class="redemption-actions">
+                <button class="redemption-action" id="approve-redemption" type="button" disabled>1. Approve token</button>
+                <button class="redemption-action" id="request-redemption" type="button" disabled>2. Request redemption</button>
+                <button class="redemption-action" id="pay-redemption" type="button" disabled>3. Pay reserve</button>
+                <button class="redemption-action" id="generate-payout-proof" type="button" disabled>4. Generate proof</button>
+                <button class="redemption-action" id="finalize-redemption" type="button" disabled>5. Finalize and burn</button>
+              </div>
+              <a class="redemption-transaction" id="redemption-transaction-link" hidden target="_blank" rel="noreferrer">Inspect transaction ↗</a>
+            </article>
+          </div>
+
+          <details class="redemption-evidence">
+            <summary>How proof-finalized redemption protects the lifecycle</summary>
+            <div class="redemption-explanation">
+              <p><strong>Escrow first.</strong> Tokens stay inside the Creditcoin controller while redemption is pending.</p>
+              <p><strong>Pay exact terms.</strong> The Sepolia vault must emit the same request ID, recipient, operator, and amount.</p>
+              <p><strong>Burn after proof.</strong> Attestcoin confirms the payout before the controller destroys the escrowed supply.</p>
+            </div>
+          </details>
+        </section>
 
         <section class="issuer-portfolio" id="issuer-portfolio" hidden aria-labelledby="issuer-portfolio-title">
           <div class="portfolio-heading">
@@ -326,10 +380,9 @@
 
           <aside class="boundary-card">
             <p class="label">Honest boundary</p>
-            <h3>Issuance is live evidence. Redemption is deferred.</h3>
+            <h3>Know which lifecycle this asset supports.</h3>
             <p>
-              This pilot proves one-way reserve deposit, replay-safe Creditcoin accounting, exact rvUSD minting,
-              and an active CTC issuer bond. Two-way redemption remains deferred.
+              New V2 issuers prove deposits, exact minting, reserve payouts, escrow, and burning. Historical V1 assets remain visible as issuance-only evidence and cannot be upgraded into redemption.
             </p>
             <a href="../docs/security-invariants.md">Read the tested invariants →</a>
           </aside>
@@ -343,7 +396,7 @@
     </footer>
 
     <script type="module" src="./motion.js?v=1"></script>
-    <script type="module" src="./app.js?v=13"></script>
-    <script type="module" src="./wallet.js?v=20"></script>
+    <script type="module" src="./app.js?v=14"></script>
+    <script type="module" src="./wallet.js?v=22"></script>
   </body>
 </html>

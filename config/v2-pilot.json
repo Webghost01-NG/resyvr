@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-09-10",
+  "administrator": "0x6CeD8D6Bad8Dfd2e60BCEA116fE74548f959f1F2",
+  "issuerId": "0x6ced8d6bad8dfd2e60bcea116fe74548f959f1f200006aa2590cf5e8d5a9b787",
+  "amount": "100000",
+  "decimals": 6,
+  "tokenName": "Resyvr Redeemable USD",
+  "tokenSymbol": "rvUSD2",
+  "source": {
+    "vault": "0xb733B5680f83f92f978d8862dD689f4372Ec5A1e",
+    "depositId": "0x2c63991e5804d7b727c217b0aac49570dadf22888367d8398937fe5397df408a",
+    "redemptionId": "0xa4073179a3878242a8f28212e592605022a4db6909ee1e469098b68d84f483e7",
+    "createVault": {
+      "transactionHash": "0x2ef29334599d3c258e73ba95256410eda444f79474d238a9fccc292298c29945",
+      "blockNumber": 11673423,
+      "gasUsed": "713696"
+    },
+    "approveReserve": {
+      "transactionHash": "0x83c28be6f7c8f2b13593dce166778bf8905e747ba52504330a8da85520a8187e",
+      "blockNumber": 11673442,
+      "gasUsed": "55437"
+    },
+    "depositReserve": {
+      "transactionHash": "0x52a6c854c0f75569438f5639c469cd89d99178522767b38e0dc1568e828e00c7",
+      "blockNumber": 11673444,
+      "gasUsed": "264463"
+    },
+    "payout": {
+      "transactionHash": "0x0b9f8a0a60b6aaf394cf8f1892a65d540aad3c5eada901d78b160fc7a04645e4",
+      "blockNumber": 11674388,
+      "gasUsed": "249313"
+    }
+  },
+  "destination": {
+    "controller": "0x13497bba153d8417bd75ad14a9ba4651fae57834",
+    "token": "0x5b8b9d3cc8f63f84ab612c78ae1c1cb3019f9ac9",
+    "bondVault": "0x488e45a5fe3ee0f6521ad267c6f5b2b8ace49226",
+    "createIssuer": {
+      "transactionHash": "0x0a5befda33ea5dec986f685e480fdd8895cde7a6c15ef6056c914e8eb2f4cdff",
+      "blockNumber": 5463046,
+      "gasUsed": "3367463"
+    },
+    "depositBond": {
+      "transactionHash": "0xafe4e26fb863b10bb195e222d20623cfd31e59a9004b8cea79b44c0bb84cfd40",
+      "blockNumber": 5463048,
+      "gasUsed": "30786"
+    },
+    "activate": {
+      "transactionHash": "0xe6ccf042e9155a9fe1d36c316623994326bc8e926607dd7c97af5ac82b784316",
+      "blockNumber": 5463049,
+      "gasUsed": "44737"
+    },
+    "mint": {
+      "transactionHash": "0x7d1df433188d47633c2b10c67bd97e9b4275652a66ddb2432112ae09e39c226b",
+      "blockNumber": 5463051,
+      "gasUsed": "344120",
+      "queryId": "0x6a299bb4c1f075c0f2869bbfbce5b4b19665dc95750b355acee41981b15c33cc"
+    },
+    "approveRedemption": {
+      "transactionHash": "0xa80f4c42d92c65a2bb35a223ef2fc8d6ec87dde3d8b2d76ab5934d7580736821",
+      "blockNumber": 5463052,
+      "gasUsed": "45921"
+    },
+    "requestRedemption": {
+      "transactionHash": "0x368e3fc870f5370bcb0d735ade7001296f3b79b201b49bb643ae5c797d5dd5d0",
+      "blockNumber": 5463053,
+      "gasUsed": "216048"
+    },
+    "finalizeRedemption": {
+      "transactionHash": "0xe0065570adb21e6316c6d708049efebf5b5bea5427e826b8ea448964421d60b0",
+      "blockNumber": 5463121,
+      "gasUsed": "300356",
+      "queryId": "0xb2bff0c57d8400ce20e7891b60966e7a9c737cc36f987e9c3e6d1bb08e2f0519"
+    }
+  },
+  "proofs": {
+    "deposit": {
+      "chainKey": 1,
+      "sourceBlock": 11673444,
+      "merkleSiblings": 7,
+      "continuityRoots": 10
+    },
+    "payout": {
+      "chainKey": 1,
+      "sourceBlock": 11674388,
+      "merkleSiblings": 8,
+      "continuityRoots": 13
+    }
+  },
+  "finalState": {
+    "totalVerifiedReserve": "100000",
+    "totalRedeemed": "100000",
+    "netVerifiedReserve": "0",
+    "pendingRedemption": "0",
+    "tokenSupply": "0",
+    "holderBalance": "0",
+    "sourceRecognizedReserve": "0",
+    "sourceReserveBalance": "0",
+    "bondBalance": "1000000000000000000",
+    "bondCanRelease": true
+  }
+}

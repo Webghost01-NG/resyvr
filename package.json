@@ -8,7 +8,7 @@
     "node": ">=22.12.0"
   },
   "scripts": {
-    "check": "npm run typecheck && npm test && npm run dashboard:check && npm run submission:check && npm run contracts:check && npm run preflight && npm run evidence:verify && npm run evidence:v2:verify",
+    "check": "npm run typecheck && npm test && npm run dashboard:check && npm run submission:check && npm run contracts:check && npm run preflight && npm run evidence:verify && npm run evidence:v2:verify && npm run evidence:v2:pilot",
     "contracts:build": "forge build --root contracts",
     "contracts:check": "forge fmt --root contracts --check && forge build --root contracts && forge test --root contracts",
     "contracts:test": "forge test --root contracts",
@@ -17,9 +17,10 @@
     "deployment:v2:prepare": "forge build --root contracts && node scripts/export-v2-bytecode.mjs",
     "deployment:verify-sources": "bash scripts/verify-issuer-sources.sh",
     "dashboard": "python3 -m http.server 8000",
-    "dashboard:check": "node --check dashboard/motion.js && node --check dashboard/app.js && node --check dashboard/wallet.js && node --check dashboard/v2-deploy.js && node --check dashboard/v2-pilot.js && node scripts/check-dashboard.mjs && node scripts/test-dashboard-encoding.mjs",
+    "dashboard:check": "node --check dashboard/motion.js && node --check dashboard/app.js && node --check dashboard/wallet.js && node --check dashboard/v2-deploy.js && node --check dashboard/v2-pilot.js && node --check dashboard/judge-evidence.js && node scripts/check-dashboard.mjs && node scripts/test-dashboard-encoding.mjs",
     "evidence:verify": "node --dns-result-order=ipv4first --import tsx scripts/verify-evidence.ts",
     "evidence:v2:verify": "forge build --root contracts && node --dns-result-order=ipv4first --import tsx scripts/verify-v2-factories.ts",
+    "evidence:v2:pilot": "node --dns-result-order=ipv4first --import tsx scripts/verify-v2-pilot.ts",
     "preflight": "node --dns-result-order=ipv4first --import tsx scripts/preflight.ts",
     "proof:deposit": "node --dns-result-order=ipv4first --import tsx scripts/generate-deposit-proof.ts",
     "submission:check": "node scripts/check-submission.mjs",
