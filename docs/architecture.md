@@ -49,7 +49,7 @@ ReservePaidOut(
 )
 ```
 
-The V1 vault implements deposits only. The V2 prototype adds identified payouts
+The V1 vault implements deposits only. V2 adds identified payouts
 and canonical CREATE2 deployment through `SourceReserveVaultFactoryV2`; it still
 does not expose a generic administrative withdrawal. Every reserve
 movement must emit a uniquely identified event that can be proven and
@@ -84,8 +84,8 @@ An issuer record binds:
 - minimum CTC bond;
 - operational and paused status.
 
-The V1 token exposes standard transfers plus controller-only minting. The V2
-prototype adds controller escrow and controller-only burning after an exact
+The V1 token exposes standard transfers plus controller-only minting. V2 adds
+controller escrow and controller-only burning after an exact
 source payout proof succeeds.
 
 ### CTCBondVault — Creditcoin

@@ -122,7 +122,9 @@ async function requireSuccessfulReceipt(
 
 async function main(): Promise<void> {
   const checks: Check[] = [];
-  const source = new JsonRpcProvider(networks.source.rpcUrl, networks.source.chainId, { staticNetwork: true });
+  // The default low-latency RPC may prune historical receipts. Use the
+  // configured archival endpoint for the older V1 evidence package.
+  const source = new JsonRpcProvider(networks.source.archiveRpcUrl, networks.source.chainId, { staticNetwork: true });
   const destination = new JsonRpcProvider(networks.destination.rpcUrl, networks.destination.chainId, {
     staticNetwork: true,
   });

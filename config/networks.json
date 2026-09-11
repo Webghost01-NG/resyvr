@@ -4,6 +4,7 @@
     "chainId": 11155111,
     "attestcoinChainKey": 1,
     "rpcUrl": "https://ethereum-sepolia-rpc.publicnode.com",
+    "archiveRpcUrl": "https://sepolia.gateway.tenderly.co",
     "explorerUrl": "https://sepolia.etherscan.io",
     "transactionExecutor": "0xdb9B1e94B5b69Df7e401DDbedE43491141047dB3",
     "canonicalVaultFactoryV2": "0x97e27c9dAA20fE0D3B7C18A7DBd8ca2A266E400f",

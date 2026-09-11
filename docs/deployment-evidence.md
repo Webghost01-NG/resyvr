@@ -3,7 +3,7 @@
 This document separates live network evidence from deterministic contract-test
 evidence. A test result is never presented as a Creditcoin transaction.
 
-## Live cross-chain proof
+## Historical V1 cross-chain proof
 
 The Sepolia `SourceReserveVault` and CC3 `ProofReserveController` addresses,
 deployment receipts, proof receipt, block numbers, gas, and verified state are
@@ -84,12 +84,27 @@ The three cases pass and demonstrate:
 - a beneficiary differing between direct-call calldata and the vault event
   fails with `InvalidDepositLog()` (`0xc12dcbc2`).
 
-The full 54-test suite also covers source-chain, transaction target, issuer,
+The full 55-test suite also covers source-chain, transaction target, issuer,
 depositor, receipt status, amount, duplicate-log, deposit-ID replay, pause,
 bond, mint authorization, canonical V2 vault provenance, and V2 redemption
 failures. Stateful campaigns assert that V1 token supply always equals
-independently accumulated proven reserve. V2 tests remain local prototype
-evidence until its separate deployments are recorded.
+independently accumulated proven reserve.
+
+## Complete live V2 round trip
+
+V2 is the current product path. Its versioned evidence is recorded in
+`config/v2-pilot.json` and presented on the public
+[Judge Evidence page](https://webghost01-ng.github.io/resyvr/dashboard/judge-evidence.html).
+The pilot locked 0.1 test USDC, accepted the deposit proof, minted 0.1 rvUSD2,
+escrowed that supply, paid the exact Sepolia reserve recipient, accepted the
+payout proof, and burned the escrow. Final token supply, pending redemption,
+net verified reserve, and source recognized reserve are all zero.
+
+`npm run evidence:v2:pilot` performs 93 live checks covering six deployed
+contracts, all eleven transaction receipts, canonical source events, both
+Attestcoin proof responses, replay state, and the final Sepolia and Creditcoin
+accounting values. This evidence is separate from deterministic unit tests and
+can be reproduced without a wallet or private key.
 
 ## Reproduction
 
@@ -100,6 +115,8 @@ npm install
 npm run contracts:check
 npm run preflight
 npm run evidence:verify
+npm run evidence:v2:verify
+npm run evidence:v2:pilot
 npm run dashboard
 ```
 
