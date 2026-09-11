@@ -4,6 +4,7 @@ import { chainInfo } from '@gluwa/usc-sdk';
 import { Contract, JsonRpcProvider, formatEther, formatUnits } from 'ethers';
 
 import { loadConfig } from '../src/config';
+import networks from '../config/networks.json';
 
 type Result = { name: string; ok: boolean; detail: string };
 
@@ -118,7 +119,7 @@ async function checkWalletBalances(
 
 async function main(): Promise<void> {
   const config = loadConfig();
-  const sourceProvider = new JsonRpcProvider(config.source.rpcUrl, Number(config.source.chainId), {
+  let sourceProvider = new JsonRpcProvider(config.source.rpcUrl, Number(config.source.chainId), {
     staticNetwork: true,
   });
   const destinationProvider = new JsonRpcProvider(
@@ -129,8 +130,20 @@ async function main(): Promise<void> {
 
   // Keep the live checks sequential. Public endpoints may rate-limit a burst
   // even when each individual dependency is healthy.
+  let sourceRpc = await checkRpc('Sepolia RPC', sourceProvider, config.source.chainId);
+  if (!sourceRpc.ok && networks.source.archiveRpcUrl) {
+    const fallbackProvider = new JsonRpcProvider(networks.source.archiveRpcUrl, Number(config.source.chainId), {
+      staticNetwork: true,
+    });
+    const fallback = await checkRpc('Sepolia RPC fallback', fallbackProvider, config.source.chainId);
+    if (fallback.ok) {
+      sourceProvider = fallbackProvider;
+      sourceRpc = result('Sepolia RPC', true, `${fallback.detail} via archival fallback`);
+    }
+  }
+
   const checks = [
-    await checkRpc('Sepolia RPC', sourceProvider, config.source.chainId),
+    sourceRpc,
     await checkRpc('Creditcoin RPC', destinationProvider, config.destination.chainId),
     await checkProofBuilder(config.destination.proofBuilderUrl),
     await checkVerifier(destinationProvider, config.destination.verifierPrecompile),

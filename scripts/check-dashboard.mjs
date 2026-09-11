@@ -48,6 +48,12 @@ if (!wallet.includes('publicRpc(rpcUrl, "eth_estimateGas"')) throw new Error("Wa
 if (!wallet.includes('publicRpc(networks.destination.rpcUrl, "eth_getLogs"')) throw new Error("Issuer portfolio does not read factory logs");
 if (!wallet.includes("recoverPendingAction")) throw new Error("Wallet flow does not recover pending transactions");
 if (!wallet.includes("recordPendingAction")) throw new Error("Wallet flow does not persist submitted transactions");
+const initializeBody = wallet.slice(wallet.indexOf("async function initialize()"));
+if (initializeBody.indexOf("bindActions();") > initializeBody.indexOf("await Promise.all([")) {
+  throw new Error("Wallet actions are bound only after fallible network initialization");
+}
+if (!wallet.includes('ethereum#initialized')) throw new Error("Wallet flow does not recover delayed MetaMask injection");
+if (!wallet.includes("bindWalletProviderEvents")) throw new Error("Wallet provider events are not bound independently of initial RPC recovery");
 if (!wallet.includes("selectIssuer")) throw new Error("Issuer portfolio cannot reopen an issuer workflow");
 if (!wallet.includes("encodeCreateIssuerV2")) throw new Error("New issuers do not use the redeemable V2 factory");
 if (!wallet.includes("encodeRequestRedemption")) throw new Error("Managed V2 assets cannot request redemption");
