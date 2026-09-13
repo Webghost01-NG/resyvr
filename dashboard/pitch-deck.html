@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Resyvr pitch deck — proof-bounded RWA issuance and redemption on Creditcoin." />
+    <meta name="theme-color" content="#080914" />
+    <title>Resyvr — Pitch Deck</title>
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./pitch-deck.css?v=1" />
+  </head>
+  <body>
+    <header class="deck-header">
+      <a class="brand" href="./" aria-label="Open Resyvr">
+        <span class="brand-mark" aria-hidden="true">R</span>
+        <span>RESYVR</span>
+      </a>
+      <p><span id="slide-number">01</span> / 08</p>
+      <a class="header-link" href="./judge-evidence.html">Judge evidence ↗</a>
+    </header>
+
+    <main id="deck">
+      <section class="slide hero" data-title="Cover">
+        <div class="eyebrow">RWA · CREDITCOIN · ATTESTCOIN</div>
+        <div class="hero-grid">
+          <div>
+            <h1>Proof keeps<br />the reserve.</h1>
+            <p class="lede">Cross-chain infrastructure for issuing and redeeming assets against cryptographically verified reserves.</p>
+          </div>
+          <div class="orbit" aria-label="Sepolia reserve, Attestcoin proof and Creditcoin issuance">
+            <span class="orbit-ring ring-one"></span>
+            <span class="orbit-ring ring-two"></span>
+            <strong>rvUSD2</strong>
+            <span class="node node-a">Sepolia<small>Reserve</small></span>
+            <span class="node node-b">Attestcoin<small>Proof</small></span>
+            <span class="node node-c">Creditcoin<small>Settlement</small></span>
+          </div>
+        </div>
+        <p class="footnote">V2 live testnet lifecycle · September 2026</p>
+      </section>
+
+      <section class="slide" data-title="Problem">
+        <div class="eyebrow">01 / THE PROBLEM</div>
+        <h2>“Backed” is usually<br />just a promise.</h2>
+        <div class="three-column">
+          <article><span>01</span><h3>Hidden reserves</h3><p>Token holders cannot independently confirm that the claimed backing was actually locked.</p></article>
+          <article><span>02</span><h3>Unsafe minting</h3><p>A cross-chain transaction alone does not prove the right vault, asset, recipient or amount.</p></article>
+          <article><span>03</span><h3>Missing exits</h3><p>Many prototypes demonstrate issuance but never prove reserve payout and token burning.</p></article>
+        </div>
+      </section>
+
+      <section class="slide" data-title="Solution">
+        <div class="eyebrow">02 / THE SOLUTION</div>
+        <h2>Every mint begins with proof.<br />Every burn ends with settlement.</h2>
+        <div class="promise-row">
+          <div><strong>LOCK</strong><p>Reserve enters a canonical Sepolia vault.</p></div>
+          <i>→</i><div><strong>PROVE</strong><p>Attestcoin verifies the source event.</p></div>
+          <i>→</i><div><strong>MINT</strong><p>Creditcoin creates the exact proven amount.</p></div>
+          <i>→</i><div><strong>REDEEM</strong><p>Payout proof authorizes the final burn.</p></div>
+        </div>
+        <p class="callout">Resyvr turns cross-chain evidence into enforceable token-supply rules.</p>
+      </section>
+
+      <section class="slide" data-title="Architecture">
+        <div class="eyebrow">03 / HOW IT WORKS</div>
+        <h2>Two chains. One verifiable lifecycle.</h2>
+        <div class="architecture">
+          <div class="chain-card"><span>ETHEREUM SEPOLIA</span><h3>Canonical reserve vault</h3><p>Locks test USDC and emits uniquely identified deposit and payout events.</p></div>
+          <div class="proof-card"><span>ATTESTCOIN</span><h3>Cryptographic proof</h3><p>Proves the transaction, receipt, event fields and attested block continuity.</p></div>
+          <div class="chain-card"><span>CREDITCOIN CC3</span><h3>Issuer controller</h3><p>Checks provenance and replay identities, then mints, escrows or burns.</p></div>
+        </div>
+        <div class="guardrails"><span>Canonical vault provenance</span><span>Exact amount binding</span><span>Four replay guards</span><span>Isolated issuers</span></div>
+      </section>
+
+      <section class="slide screenshot-slide" data-title="Product">
+        <div class="copy">
+          <div class="eyebrow">04 / THE PRODUCT</div>
+          <h2>One wallet.<br />Every asset.</h2>
+          <p>An issuer creates a branded, redeemable ERC-20 system, returns later to mint more of the same asset, and manages every token from one portfolio.</p>
+          <ul><li>Guided cross-chain wallet flow</li><li>Refresh-safe transaction recovery</li><li>Public explorer links at every step</li></ul>
+        </div>
+        <figure><img src="../docs/screenshots/issuer-portfolio.png" alt="Resyvr issuer portfolio" /></figure>
+      </section>
+
+      <section class="slide" data-title="Redemption">
+        <div class="eyebrow">05 / COMPLETE REDEMPTION</div>
+        <h2>The investor exit is proven too.</h2>
+        <ol class="timeline">
+          <li><b>1</b><div><strong>Request</strong><p>Holder escrows tokens on Creditcoin.</p></div></li>
+          <li><b>2</b><div><strong>Pay</strong><p>Vault sends the exact reserve amount to the named recipient.</p></div></li>
+          <li><b>3</b><div><strong>Prove</strong><p>Attestcoin proves the successful Sepolia payout.</p></div></li>
+          <li><b>4</b><div><strong>Burn</strong><p>Creditcoin finalizes redemption and destroys the escrowed supply.</p></div></li>
+        </ol>
+        <div class="result"><span>RESERVE AFTER</span><strong>0.0 USDC</strong><span>SUPPLY AFTER</span><strong>0 rvUSD2</strong><em>✓ SETTLED</em></div>
+      </section>
+
+      <section class="slide evidence" data-title="Evidence">
+        <div class="eyebrow">06 / LIVE EVIDENCE</div>
+        <h2>Inspectable. Reproducible. Live.</h2>
+        <div class="metric-row"><div><strong>93</strong><span>live V2 lifecycle checks</span></div><div><strong>55</strong><span>passing Foundry tests</span></div><div><strong>11</strong><span>linked transaction receipts</span></div><div><strong>6</strong><span>deployed contracts checked</span></div></div>
+        <div class="evidence-grid">
+          <div><span>LOCK RESERVE</span><code>0x52a6…00c7</code></div><div><span>VERIFY + MINT</span><code>0x7d1d…226b</code></div><div><span>PAY RECIPIENT</span><code>0x0b9f…45e4</code></div><div><span>FINALIZE + BURN</span><code>0xe006…60b0</code></div>
+        </div>
+        <a class="primary-link" href="./judge-evidence.html">Open the Judge Evidence page ↗</a>
+      </section>
+
+      <section class="slide closing" data-title="Close">
+        <div class="eyebrow">07 / WHY RESYVR</div>
+        <h2>RWA infrastructure<br />judges can verify.</h2>
+        <div class="closing-grid">
+          <div><h3>Built for issuers</h3><p>Canonical vaults, isolated asset systems, repeat minting and complete redemption.</p></div>
+          <div><h3>Built for scrutiny</h3><p>Every address, transaction, proof result and final accounting state is public.</p></div>
+          <div><h3>Honest boundaries</h3><p>Test assets, attestation delay, issuer liveness, and an activation stake that is explicitly not insurance.</p></div>
+        </div>
+        <div class="cta-row"><a href="./">Launch Resyvr ↗</a><a href="./judge-evidence.html">Verify the lifecycle ↗</a><a href="https://github.com/Webghost01-NG/resyvr">Read the code ↗</a></div>
+      </section>
+    </main>
+
+    <nav class="deck-controls" aria-label="Slide controls">
+      <button id="previous-slide" type="button" aria-label="Previous slide">←</button>
+      <div id="slide-dots"></div>
+      <button id="next-slide" type="button" aria-label="Next slide">→</button>
+    </nav>
+    <script type="module" src="./pitch-deck.js?v=1"></script>
+  </body>
+</html>
