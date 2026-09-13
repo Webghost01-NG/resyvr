@@ -189,4 +189,4 @@ The project does not claim that inclusion proofs or lock-to-mint are new.
 - Demo script: `docs/demo-script.md`
 - Submission checklist: `docs/submission-checklist.md`
 - Demo video: to be recorded and added before DoraHacks submission
-- Pitch deck: to be added to the DoraHacks submission if its form requires one
+- Pitch deck: https://webghost01-ng.github.io/resyvr/dashboard/pitch-deck.html
